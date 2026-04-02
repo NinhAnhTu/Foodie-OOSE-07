@@ -149,14 +149,18 @@ Các topic đăng ký:
 ```
 
 👥 Nhóm phát triển
+```bash
 Trần Hữu Lộc – Nghiệp vụ bếp + thanh toán + khách hàng (Frontend & WebSocket)
 
 Nguyễn Khánh – Nghiệp vụ quản trị (Admin Frontend & Dashboard)
 
 Ninh Anh Tú – Backend (API, Database, Security, WebSocket, Email)
+```
 
 📄 Giấy phép
+
 Dự án được xây dựng với mục đích học tập và báo cáo. Vui lòng không sử dụng cho mục đích thương mại khi chưa có sự đồng ý của tác giả.
 
 ⭐ Nếu bạn thấy dự án hữu ích, hãy để lại một star trên GitHub nhé!
+
 📧 Mọi thắc mắc xin liên hệ: ninhanhtu1704@gmail.com
