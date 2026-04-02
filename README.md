@@ -163,4 +163,4 @@ Dự án được xây dựng với mục đích học tập và báo cáo. Vui 
 
 ⭐ Nếu bạn thấy dự án hữu ích, hãy để lại một star trên GitHub nhé!
 
-📧 Mọi thắc mắc xin liên hệ: ninhanhtu1704@gmail.com
+📧 Mọi thắc mắc xin liên hệ: ninhanhtu1704@gmail.com hoặc tranhuuloc05@gmail.com
