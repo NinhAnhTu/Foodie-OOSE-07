@@ -29,7 +29,7 @@ Hệ thống sử dụng **WebSocket** để cập nhật thời gian thực (re
 - Dashboard thống kê (doanh thu theo ngày, top món bán chạy, số liệu tổng quan)
 - Nhật ký hệ thống (audit log) – theo dõi mọi thay đổi dữ liệu
 
-### 👨‍🍳 Dành cho Nnân viên phục vụ (Waiter)
+### 👨‍🍳 Dành cho nhân viên phục vụ (Waiter)
 - Sơ đồ bàn trực quan (trống/đang có khách/đã đặt trước)
 - Mở bàn / check-in cho khách (tạo hóa đơn mới)
 - Thêm, hủy món trực tiếp trên giao diện quản lý
