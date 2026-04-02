@@ -1,0 +1,32 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "reservations.html" as View
+control "ReservationAdminController" as Controller
+participant "ReservationService" as ResService
+participant "EmailService" as EmailService
+database "Database" as DB
+
+Admin -> View: Nhập lý do và bấm "Từ chối"
+View -> Controller: POST /admin/api/reservations/reject\n(reservationId, reason)
+
+Controller -> ResService: findById(reservationId)
+ResService -> DB: findById()
+DB --> ResService: Trả về dữ liệu Reservation
+ResService --> Controller: Trả về đối tượng Reservation
+
+Controller -> Controller: Đổi status = CANCELLED
+Controller -> ResService: save(reservation)
+ResService -> DB: save()
+DB --> ResService: Cập nhật thành công
+ResService --> Controller: Hoàn tất lưu
+
+alt Email != null và không rỗng
+    Controller -> Controller: Format reservationTime (HH:mm dd/MM/yyyy)
+    Controller -> EmailService: sendRejectionEmail(email, tên, giờ, lý do)
+    EmailService --> Controller: Hoàn tất gửi mail
+end
+
+Controller --> View: Trả về chuỗi "success"
+View -> View: Tải lại giao diện / Ẩn đơn bị từ chối
+@enduml

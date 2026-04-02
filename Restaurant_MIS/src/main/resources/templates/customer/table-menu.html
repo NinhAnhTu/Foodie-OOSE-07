@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Menu Gọi Món - Foodie</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { background: #f8fafc; font-family: 'Inter', sans-serif; padding-top: 65px; padding-bottom: 90px; color: #111111; }
+
+        i.fas, i.fa-solid { font-weight: 900 !important; }
+
+        h1, h2, h3, h4, h5, h6, .modal-title, .brand-sm, .dish-title { font-family: 'Lora', serif !important; font-weight: 700; }
+
+        .top-header { position: fixed; top: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); z-index: 1030; box-shadow: 0 2px 15px rgba(0,0,0,0.04); height: 65px; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+        .brand-sm { color: #ea580c; font-weight: 800; font-size: 1.6rem; text-decoration: none; letter-spacing: 0.5px;}
+        .table-badge { background: #fff7ed; color: #ea580c; padding: 6px 14px; border-radius: 50px; font-size: 0.85rem; font-weight: 700; border: 1px solid #fdba74; font-family: 'Inter', sans-serif; }
+
+        .category-scroll { overflow-x: auto; white-space: nowrap; padding: 15px 20px; background: #fff; -webkit-overflow-scrolling: touch; margin-bottom: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .category-scroll::-webkit-scrollbar { display: none; }
+        .cat-pill { display: inline-block; padding: 8px 18px; background: #f1f5f9; color: #475569; border-radius: 50px; font-size: 0.95rem; font-weight: 600; margin-right: 12px; text-decoration: none; transition: all 0.3s ease; }
+        .cat-pill.active { background: #ea580c; color: #fff; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); }
+
+        .dish-card { background: #fff; border-radius: 20px; overflow: hidden; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.03); height: 100%; display: flex; flex-direction: column; position: relative; transition: transform 0.2s ease;}
+        .dish-card:active { transform: scale(0.98); }
+        .dish-img { width: 100%; height: 160px; object-fit: cover; }
+        .dish-body { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        .dish-title { font-size: 1.1rem; color: #1e293b; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;}
+        .dish-price { color: #ea580c; font-weight: 800; font-size: 1.15rem; margin-top: auto; font-family: 'Inter', sans-serif;}
+        .btn-add { background: #ea580c; color: #fff; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(234, 88, 12, 0.3); transition: background 0.2s;}
+        .btn-add:active { background: #c2410c; }
+
+        .bottom-cart { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); padding: 15px 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.08); z-index: 1030; display: flex; justify-content: space-between; align-items: center; border-radius: 30px 30px 0 0; }
+        .cart-icon-wrapper { position: relative; width: 50px; height: 50px; background: #fff7ed; color: #ea580c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1px solid #fdba74; }
+        .cart-badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: #fff; font-size: 0.8rem; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; border: 2px solid #fff; }
+        .btn-orange-rounded { background: linear-gradient(135deg, #f97316, #ea580c); color: white; border: none; border-radius: 50px; font-weight: 700; box-shadow: 0 4px 15px rgba(234, 88, 12, 0.3); transition: transform 0.2s; text-decoration: none; text-align: center; display: inline-flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif;}
+        .btn-orange-rounded:active { transform: scale(0.95); }
+        .qty-btn { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #ea580c; background: #fff; color: #ea580c; font-weight: bold; display: flex; align-items: center; justify-content: center; padding: 0; transition: 0.2s;}
+        .qty-btn:active { background: #ea580c; color: #fff; }
+        .sold-out-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(255,255,255,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px);}
+    </style>
+</head>
+<body>
+
+<header class="top-header">
+    <a href="/table/menu" class="brand-sm"><i class="fas fa-utensils me-2"></i>Foodie</a>
+    <div class="table-badge" th:text="${order.table.tableName} + ' | HĐ: #' + ${order.orderId}">Bàn 1</div>
+</header>
+
+<div class="category-scroll">
+    <a th:href="@{/table/menu}"
+       class="cat-pill"
+       th:classappend="${currentCategoryId == null} ? 'active' : ''">Tất cả</a>
+
+    <a th:each="cat : ${categories}"
+       th:href="@{/table/menu(categoryId=${cat.categoryId})}"
+       class="cat-pill"
+       th:classappend="${currentCategoryId == cat.categoryId} ? 'active' : ''"
+       th:text="${cat.name}">Danh mục</a>
+</div>
+
+<div class="container-fluid px-3" id="customerMenuGrid">
+    <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-3" th:each="item : ${menuItems}">
+            <div class="dish-card" th:classappend="${!item.isAvailable ? 'opacity-75' : ''}">
+
+                <div th:if="${!item.isAvailable}" class="sold-out-overlay">
+                    <span class="badge bg-secondary fs-6 px-3 py-2 rounded-pill shadow-sm border border-white" style="font-family: 'Inter', sans-serif;">Tạm hết hàng</span>
+                </div>
+
+                <img th:src="${item.imageUrl != null ? item.imageUrl : 'https://via.placeholder.com/300x200?text=Food'}" class="dish-img">
+                <div class="dish-body">
+                    <div class="dish-title" th:text="${item.name}">Tên món ăn</div>
+                    <div class="d-flex justify-content-between align-items-end mt-2">
+                        <div class="dish-price" th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div>
+
+                        <button th:if="${item.isAvailable}" class="btn-add" th:onclick="'updateCart(' + ${item.itemId} + ', 1)'"><i class="fas fa-plus"></i></button>
+                        <button th:unless="${item.isAvailable}" class="btn-add bg-secondary shadow-none border-0" disabled><i class="fas fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-cart">
+    <div class="d-flex align-items-center" onclick="openCartModal()" style="cursor: pointer; flex: 1;">
+        <div class="cart-icon-wrapper"><i class="fas fa-shopping-basket"></i><div class="cart-badge" id="cartItemCount" th:text="${cartCount}">0</div></div>
+        <div><div class="small text-muted ms-3 fw-bold" style="margin-bottom: -5px; font-family: 'Inter', sans-serif;">Giỏ hàng</div><div class="total-price" style="font-size: 1.3rem; font-weight: 800; color: #1e293b; margin-left: 15px;" th:text="${#numbers.formatDecimal(cartTotal, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</div></div>
+    </div>
+    <a href="/table/bill" class="btn-orange-rounded px-3 py-2 text-decoration-none shadow-sm">Xem HĐ <i class="fas fa-receipt ms-2"></i></a>
+</div>
+
+<div class="modal fade" id="cartModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0" style="border-radius: 30px;">
+            <div class="modal-header border-0 pb-0 mt-3 mx-2"><h5 class="fw-bold mb-0 text-dark">Các món đang chọn</h5><button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body p-4">
+                <div th:if="${cartMap.isEmpty()}" class="text-center text-muted py-5"><i class="fas fa-shopping-cart fa-3x mb-3" style="color: #cbd5e1;"></i><p style="font-family: 'Inter', sans-serif;">Giỏ hàng đang trống.</p></div>
+                <div th:each="entry : ${cartMap}" class="mb-3 pb-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div style="flex: 1; padding-right: 15px;">
+                            <div class="fw-bold text-dark dish-title mb-0" style="font-size: 1.15rem;" th:text="${entry.key.name}">Tên món</div>
+                            <div class="small text-muted mt-1" style="font-weight: 600;" th:text="${#numbers.formatDecimal(entry.key.price, 0, 'COMMA', 0, 'POINT')} + 'đ'">Giá</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <button class="qty-btn" th:onclick="'updateCart(' + ${entry.key.itemId} + ', -1)'"><i class="fas fa-minus"></i></button>
+                            <span class="fw-bold fs-5 text-dark" th:text="${entry.value.quantity}">1</span>
+                            <button class="qty-btn" th:onclick="'updateCart(' + ${entry.key.itemId} + ', 1)'"><i class="fas fa-plus"></i></button>
+                        </div>
+                    </div>
+                    <input type="text" class="form-control form-control-sm bg-light border-0 rounded-pill px-3 py-2 text-muted mt-2"
+                           th:value="${entry.value.note}" placeholder="Thêm ghi chú"
+                           th:onchange="'updateNote(' + ${entry.key.itemId} + ', this.value)'">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0 flex-column align-items-stretch p-4 gap-2">
+                <button th:if="${!cartMap.isEmpty()}" class="btn-orange-rounded py-3 fs-6" onclick="confirmSubmitOrder()"><i class="fas fa-paper-plane me-2"></i>Gọi món</button>
+                <button class="btn btn-light rounded-pill py-2 fw-bold text-secondary mt-1" style="background: #f1f5f9; font-family: 'Inter', sans-serif;" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerActionModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+            <div class="mb-3"><i id="customerModalIcon" class="fas fa-question-circle text-primary" style="font-size: 3.5rem;"></i></div>
+            <h5 class="fw-bold" id="customerModalTitle">Tiêu đề</h5>
+            <p class="text-muted small" id="customerModalMsg" style="font-family: 'Inter', sans-serif;">Nội dung</p>
+            <div class="d-flex gap-2 w-100 mt-3" id="customerModalButtons" style="font-family: 'Inter', sans-serif;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    var cartModal = new bootstrap.Modal(document.getElementById('cartModal'));
+    var actionModal = new bootstrap.Modal(document.getElementById('customerActionModal'));
+
+    function openCartModal() { cartModal.show(); }
+
+    function showCustomerConfirm(title, msg, callback) {
+        document.getElementById('customerModalIcon').className = "fas fa-paper-plane text-warning";
+        document.getElementById('customerModalTitle').innerText = title;
+        document.getElementById('customerModalMsg').innerText = msg;
+        document.getElementById('customerModalButtons').innerHTML = `
+        <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">HỦY</button>
+        <button type="button" class="btn btn-warning text-dark w-50 rounded-pill fw-bold" onclick="${callback.name}(); window.actionModal.hide();">GỬI</button>
+      `;
+        actionModal.show();
+    }
+
+    function showCustomerNotice(title, msg, isSuccess, callbackStr) {
+        document.getElementById('customerModalIcon').className = isSuccess ? "fas fa-check-circle text-success" : "fas fa-exclamation-triangle text-danger";
+        document.getElementById('customerModalTitle').innerText = title;
+        document.getElementById('customerModalMsg').innerText = msg;
+        document.getElementById('customerModalButtons').innerHTML = `
+        <button type="button" class="btn ${isSuccess ? 'btn-success' : 'btn-dark'} w-100 rounded-pill fw-bold" onclick="${callbackStr}"><i class="fas fa-arrow-right me-2"></i> ${isSuccess ? 'Xem Hóa Đơn Bàn' : 'Đóng'}</button>
+      `;
+        actionModal.show();
+    }
+
+    function updateCart(itemId, qtyChange) {
+        fetch('/table/api/cart/update?itemId=' + itemId + '&qtyChange=' + qtyChange, {method: 'POST'})
+            .then(res => res.text())
+            .then(data => {
+                if(data === 'success') {
+                    refreshCartSilently();
+                } else {
+                    showCustomerNotice("Không thể thêm", data, false, "window.actionModal.hide()");
+                }
+            });
+    }
+
+    function refreshCartSilently() {
+        fetch(window.location.href).then(response => response.text()).then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            const newGrid = doc.getElementById('customerMenuGrid');
+            if (newGrid) document.getElementById('customerMenuGrid').innerHTML = newGrid.innerHTML;
+
+            const newBadge = doc.getElementById('cartItemCount');
+            if(newBadge) document.getElementById('cartItemCount').innerText = newBadge.innerText;
+
+            const newTotal = doc.querySelector('.bottom-cart .total-price');
+            if(newTotal) document.querySelector('.bottom-cart .total-price').innerText = newTotal.innerText;
+
+            const newModalBody = doc.querySelector('#cartModal .modal-body');
+            if(newModalBody) document.querySelector('#cartModal .modal-body').innerHTML = newModalBody.innerHTML;
+
+            const newModalFooter = doc.querySelector('#cartModal .modal-footer');
+            if(newModalFooter) {
+                const oldModalFooter = document.querySelector('#cartModal .modal-footer');
+                if (oldModalFooter) oldModalFooter.innerHTML = newModalFooter.innerHTML;
+            }
+        });
+    }
+
+    function confirmSubmitOrder() {
+        showCustomerConfirm("Xác nhận", "Gửi lệnh gọi các món này xuống bếp?", submitOrderAction);
+    }
+
+    function submitOrderAction() {
+        fetch('/table/api/cart/submit', {method: 'POST'})
+            .then(res => res.text())
+            .then(data => {
+                if(data === 'success') {
+                    refreshCartSilently();
+                    showCustomerNotice("Thành công", "Gọi món thành công! Vui lòng kiểm tra trạng thái món tại Xem Hóa Đơn Bàn.", true, "window.location.href='/table/bill'");
+                } else if (data === 'empty') {
+                    showCustomerNotice("Rỗng", "Giỏ hàng đang trống!", false, "window.actionModal.hide()");
+                } else {
+                    showCustomerNotice("Thất bại", data, false, "window.location.href='/table/login'");
+                }
+            });
+    }
+
+    function updateNote(itemId, noteValue) {
+        const formData = new URLSearchParams();
+        formData.append('itemId', itemId);
+        formData.append('note', noteValue);
+
+        fetch('/table/api/cart/note', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        }).then(res => res.text()).then(data => {
+            if(data !== 'success') {
+                console.error('Không thể lưu ghi chú!');
+            }
+        });
+    }
+
+    const socket = new SockJS('/ws-resto');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+    stompClient.connect({}, function () {
+        stompClient.subscribe('/topic/menu', function () {
+            refreshCartSilently();
+        });
+    });
+</script>
+</body>
+</html>

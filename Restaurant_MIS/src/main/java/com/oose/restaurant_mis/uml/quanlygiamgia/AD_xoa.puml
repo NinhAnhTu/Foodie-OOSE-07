@@ -1,0 +1,54 @@
+@startuml
+start
+:Admin bấm nút "Xóa" (biểu tượng thùng rác);
+:Hiển thị Modal Xác nhận (confirmDeleteDiscountModal);
+
+if (Admin bấm "OK"?) then (Đúng)
+  :Frontend gửi Request DELETE /delete/{id};
+
+  note right
+    **Backend Processing**
+  end note
+
+  :Controller kiểm tra Session;
+  if (Admin == null?) then (Đúng)
+    :Trả về lỗi HTTP 401 (Hết phiên đăng nhập);
+    stop
+  else (Sai - Hợp lệ)
+  endif
+
+  :DiscountService truy xuất dữ liệu cũ (oldValue) để chuẩn bị ghi log;
+  :Thực hiện lệnh xóa trong Database;
+
+  if (Mã này đã được sử dụng ở Hóa đơn (Lỗi khóa ngoại)?) then (Có)
+    :Bắt Exception DataIntegrityViolation;
+    :Trả về lỗi HTTP 400:\n"Không thể xóa vì đã có hóa đơn sử dụng!";
+
+    note right
+      **Frontend Processing**
+    end note
+    :Đóng Modal Xác nhận;
+    :Hiển thị Error Modal báo lỗi cho Admin;
+    stop
+  else (Không - Xóa thành công)
+    :Ghi log (AuditService) với hành động "XÓA GIẢM GIÁ";
+    :Trả về chuỗi "success" (HTTP 200);
+
+    note right
+      **Frontend Processing**
+    end note
+    :Đóng Modal Xác nhận;
+    :Đếm số dòng (tr) hiện tại trên bảng;
+    if (Số dòng == 1 VÀ Đang không ở trang đầu tiên?) then (Đúng)
+      :Tính toán lùi 1 trang (targetPage--);
+    else (Sai)
+      :Giữ nguyên trang hiện tại (targetPage);
+    endif
+    :Gọi hàm changePage(targetPage) để tải lại bảng;
+  endif
+
+else (Sai - Bấm "Hủy")
+  :Đóng Modal Xác nhận;
+endif
+stop
+@enduml

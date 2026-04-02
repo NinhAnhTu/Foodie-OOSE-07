@@ -1,0 +1,179 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Nhật ký hệ thống</h3>
+            <p class="text-muted small mb-0">Theo dõi mọi thay đổi dữ liệu nhạy cảm</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <input type="date" id="filterLogDate" class="form-control rounded-pill shadow-sm border text-muted fw-bold"
+                   th:value="${searchDate}" onchange="changeLogPage(0)">
+
+            <button class="btn btn-light rounded-pill border shadow-sm"
+                    onclick="document.getElementById('filterLogDate').value=''; changeLogPage(0)"
+                    title="Xóa bộ lọc">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+
+            <div class="badge bg-dark rounded-pill px-3 py-2 shadow-sm ms-2">
+                <i class="fas fa-shield-alt me-1"></i> Đang giám sát
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3">Thời gian</th>
+                        <th>Nhân viên</th>
+                        <th>Hành động</th>
+                        <th>Đối tượng (ID)</th>
+                        <th class="text-end pe-4">Chi tiết</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="log : ${logPage.content}">
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark" th:text="${#temporals.format(log.createdAt, 'HH:mm:ss')}"></div>
+                            <div class="small text-muted" th:text="${#temporals.format(log.createdAt, 'dd/MM/yyyy')}"></div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px; font-size: 12px;">
+                                    <span th:text="${#strings.substring(log.user.fullName, 0, 1)}">A</span>
+                                </div>
+                                <div>
+                                    <div class="fw-bold" th:text="${log.user.fullName}">Admin</div>
+                                    <div class="small text-muted" th:text="${log.user.role.name()}">Quản lý</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                                <span class="badge rounded-pill px-3"
+                                      th:classappend="${log.action.contains('XÓA') ? 'bg-danger-subtle text-danger' : (log.action.contains('THANH TOÁN') ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary')}"
+                                      th:text="${log.action}">Hành động</span>
+                        </td>
+                        <td>
+                            <span class="text-dark fw-medium" th:text="${log.tableName}">Bảng</span>
+                            <span class="text-muted small" th:text="'(ID: ' + ${log.recordId} + ')'"></span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-light border rounded-pill px-3"
+                                    th:data-old="${log.oldValue}"
+                                    th:data-new="${log.newValue}"
+                                    th:data-action="${log.action}"
+                                    onclick="viewDetailLog(this)">
+                                <i class="fas fa-search-plus me-1"></i> So sánh
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${logPage.totalElements == 0}">
+                        <td colspan="5" class="text-center py-5 text-muted">Chưa có bản ghi nhật ký nào.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${logPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changeLogPage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, logPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changeLogPage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == logPage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changeLogPage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="logDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fas fa-history me-2 text-primary"></i>Chi tiết thay đổi</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">Hành động: <strong id="modalLogAction" class="text-primary"></strong></p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border h-100">
+                                <h6 class="fw-bold text-danger border-bottom pb-2 mb-3"><i class="fas fa-undo me-1"></i> Trước khi đổi</h6>
+                                <pre id="oldDataView" class="small mb-0 text-dark" style="white-space: pre-wrap; font-family: 'Consolas', monospace;"></pre>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border h-100" style="border-color: #d1e7dd !important;">
+                                <h6 class="fw-bold text-success border-bottom pb-2 mb-3"><i class="fas fa-redo me-1"></i> Sau khi đổi</h6>
+                                <pre id="newDataView" class="small mb-0 text-dark" style="white-space: pre-wrap; font-family: 'Consolas', monospace;"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">ĐÓNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #0f172a !important; border-color: #0f172a !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        var logDetailModal = new bootstrap.Modal(document.getElementById('logDetailModal'));
+
+        function changeLogPage(page) {
+            loadModule('/admin/audit-logs', '/admin/api/audit-logs/content?page=' + page, document.getElementById('nav-audit'));
+        }
+
+        function viewDetailLog(btn) {
+            const action = btn.getAttribute('data-action');
+            const oldRaw = btn.getAttribute('data-old');
+            const newRaw = btn.getAttribute('data-new');
+
+            document.getElementById('modalLogAction').innerText = action;
+
+            // Xử lý JSON cũ
+            try {
+                const oldObj = JSON.parse(oldRaw);
+                document.getElementById('oldDataView').innerText = JSON.stringify(oldObj, null, 4);
+            } catch (e) {
+                document.getElementById('oldDataView').innerText = oldRaw || "--- (Không có dữ liệu) ---";
+            }
+
+            // Xử lý JSON mới
+            try {
+                const newObj = JSON.parse(newRaw);
+                document.getElementById('newDataView').innerText = JSON.stringify(newObj, null, 4);
+            } catch (e) {
+                document.getElementById('newDataView').innerText = newRaw || "--- (Dữ liệu bị xóa) ---";
+            }
+
+            logDetailModal.show();
+        }
+        function changeLogPage(page) {
+            // Lấy giá trị ngày từ ô input
+            const date = document.getElementById('filterLogDate').value;
+
+            let url = '/admin/api/audit-logs/content?page=' + page;
+            if (date) {
+                url += '&date=' + date;
+            }
+
+            // Tải lại bảng dữ liệu
+            loadModule('/admin/audit-logs', url, document.getElementById('nav-audit'));
+        }
+    </script>
+</div>

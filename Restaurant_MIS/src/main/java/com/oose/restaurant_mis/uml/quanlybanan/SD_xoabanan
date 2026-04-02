@@ -1,0 +1,43 @@
+@startuml
+actor Admin
+participant "TableAdminController" as TAC
+participant "DiningTableService" as DTS
+participant "DiningTableRepository" as DTR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> TAC: DELETE /admin/api/tables/delete/{id}
+activate TAC
+
+TAC -> DTS: getById(id)
+activate DTS
+DTS -> DTR: findById(id)
+DTR -> DB: SELECT * FROM restaurant_tables WHERE table_id = ?
+DB --> DTR: table
+DTR --> DTS: table
+DTS --> TAC: table
+deactivate DTS
+
+alt table.status == OCCUPIED
+  TAC --> Admin: "Bàn này đang có khách ngồi và hóa đơn đang mở. Không thể xóa!"
+else
+  TAC -> DTS: delete(id)
+  activate DTS
+  DTS -> DTR: deleteById(id)
+  DTR -> DB: DELETE FROM restaurant_tables WHERE table_id = ?
+  DB --> DTR: deleted
+  DTR --> DTS: done
+  DTS --> TAC: done
+  deactivate DTS
+
+  TAC -> AS: log(user, "DELETE", "DiningTable", id, table, null)
+  activate AS
+  AS -> DB: INSERT INTO audit_logs (action='DELETE', old_value=...)
+  DB --> AS: log saved
+  AS --> TAC: done
+  deactivate AS
+
+  TAC --> Admin: "success"
+end
+deactivate TAC
+@enduml

@@ -1,0 +1,66 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+title Class Diagram - Khách hàng đặt bàn (Updated Style)
+
+' ================== DEFINE MACROS ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENUM ==================
+enum ReservationStatus <<enumeration>> {
+    PENDING
+    CONFIRMED
+    ARRIVED
+    CANCELLED
+}
+
+' ================== ENTITY ==================
+entity(Reservation) {
+    - reservationId : Integer
+    - table : DiningTable
+    - customerName : String
+    - phone : String
+    - email : String
+    - guestCount : Integer
+    - reservationTime : LocalDateTime
+    - note : String
+    - status : ReservationStatus
+    - createdAt : LocalDateTime
+    + getters/setters()
+}
+
+' ================== CONTROLLER ==================
+controller(HomeController) {
+    + submitReservation(customerName : String, phone : String, email : String, \nguestCount : Integer, reservationDate : String, \nreservationTime : String, note : String) : String
+    + getAvailableTables() : List<DiningTable>
+}
+
+' ================== SERVICE ==================
+service(ReservationService) {
+    - diningTableService : DiningTableService
+    + savePendingReservation(reservation : Reservation) : void
+}
+
+' ================== REPOSITORY ==================
+repository(ReservationRepository) {
+    + save(reservation : Reservation) : void
+    + findTopByTable_TableIdAndStatusOrderByCreatedAtDesc(tableId : Integer, status : ReservationStatus) : Reservation
+}
+
+' ================== RELATIONSHIPS ==================
+' Controller -> Service (Nét liền)
+HomeController --> ReservationService
+
+' Service -> Repository (Nét liền)
+ReservationService --> ReservationRepository
+
+' Repository -> Entity (Nét đứt)
+ReservationRepository ..> Reservation
+
+' Quan hệ nội bộ
+Reservation *-- ReservationStatus
+
+@enduml

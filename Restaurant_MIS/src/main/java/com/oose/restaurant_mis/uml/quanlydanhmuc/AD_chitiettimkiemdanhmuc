@@ -1,0 +1,15 @@
+@startuml
+start
+:Admin nhập từ khóa vào ô tìm kiếm;
+:Admin nhấn Enter hoặc nút Tìm;
+:Frontend lấy giá trị keyword;
+:Frontend gọi API GET /admin/api/categories/content?page=0&size=5&keyword=...;
+:Controller nhận param;
+:Controller gọi categoryService.searchCategories(keyword, page, size);
+:Service gọi categoryRepository.findByNameContainingIgnoreCase(keyword, pageable);
+:Repository tạo câu truy vấn: SELECT * FROM categories WHERE LOWER(name) LIKE LOWER(CONCAT('%', keyword, '%'));
+:Trả về Page<Category>;
+:Controller trả về view "admin/categories :: content" với dữ liệu;
+:Frontend hiển thị danh sách kết quả;
+stop
+@enduml

@@ -1,0 +1,42 @@
+@startuml
+actor Admin
+participant "StaffAdminController" as SAC
+participant "StaffService" as SS
+participant "UserRepository" as UR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> SAC: POST /admin/api/staff/save\n(form data)
+activate SAC
+
+SAC -> SS: save(user)
+activate SS
+
+SS -> UR: existsByUsername(username)
+UR -> DB: SELECT COUNT(*) FROM users WHERE username = ?
+DB --> UR: 0
+UR --> SS: false (chưa tồn tại)
+
+SS -> UR: existsByEmail(email)
+UR -> DB: SELECT COUNT(*) FROM users WHERE email = ?
+DB --> UR: 0
+UR --> SS: false (chưa tồn tại)
+
+SS -> UR: save(user)
+UR -> DB: INSERT INTO users ...
+DB --> UR: generated id
+UR --> SS: savedUser
+
+SS -> AS: log(admin, "CREATE", "User", userId, null, savedUser)
+activate AS
+AS -> DB: INSERT INTO audit_logs
+DB --> AS: log saved
+AS --> SS: done
+deactivate AS
+
+SS --> SAC: success
+deactivate SS
+
+SAC -> Admin: "success" (HTTP 200)
+deactivate SAC
+@enduml

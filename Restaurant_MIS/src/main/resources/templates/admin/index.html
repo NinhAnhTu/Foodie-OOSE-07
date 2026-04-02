@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản trị nhà hàng - RESTO PRO</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --sidebar-bg: #e3c2a4;
+      --header-brown: #ce9163;
+      --primary-accent: #8c552e;
+      --primary-accent-dark: #000000;
+      --accent-bg: rgba(255, 255, 255, 0.4);
+
+      --text-dark: #000000;
+      --text-muted: #111111;
+      --border-color: rgba(0, 0, 0, 0.08);
+    }
+    body {
+      font-family: 'Lora', serif;
+      margin: 0;
+      display: flex;
+      color: var(--text-dark);
+
+      background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.55)),
+      url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600') center/cover fixed;
+    }
+
+    /* Sidebar Design */
+    .sidebar { width: 260px; background: var(--sidebar-bg); height: 100vh; position: fixed; z-index: 1000; border-right: 1px solid var(--border-color); box-shadow: 4px 0 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+
+    /* Header: Nền nâu đậm, chữ trắng */
+    .sidebar-header { padding: 2.2rem 1.5rem; font-size: 1.8rem; font-weight: 700; background-color: var(--header-brown); color: #ffffff; border-bottom: 1px solid var(--border-color); font-family: 'Lora', serif; letter-spacing: 0.5px; text-align: center; }
+
+    /* padding-top: 0 để đẩy Dashboard sát lên trên, không bị dư miếng */
+    .sidebar-menu { flex: 1; overflow-y: auto; padding-top: 0; }
+    .sidebar-menu::-webkit-scrollbar { width: 4px; }
+    .sidebar-menu::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
+
+    /* Thiết lập chữ màu đen (--text-muted) cho Menu */
+    .nav-item { padding: 0.9rem 1.5rem; display: flex; align-items: center; color: var(--text-muted); text-decoration: none; transition: all 0.2s ease; border-left: 4px solid transparent; cursor: pointer; position: relative; font-weight: 600; font-size: 1.05rem; margin-bottom: 2px;}
+    .nav-item:hover, .nav-item.active { background: var(--accent-bg); color: var(--primary-accent-dark); border-left-color: var(--primary-accent); }
+    .nav-item i { margin-right: 15px; width: 20px; text-align: center; font-size: 1.1rem; }
+
+    /* Nút đăng xuất vẫn màu đỏ */
+    .nav-item.logout-btn { color: #ef4444; }
+    .nav-item.logout-btn:hover { background: rgba(239, 68, 68, 0.1); color: #dc2626; border-left-color: #ef4444; }
+    hr.sidebar-divider { border-color: var(--border-color); margin: 0.5rem 1.5rem; opacity: 1; }
+
+    /* Main Content */
+    .main-content { flex: 1; margin-left: 260px; padding: 2.5rem; min-height: 100vh; }
+    #main-layout-content { animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .loader { display: none; position: fixed; top: 50%; left: calc(50% + 130px); transform: translate(-50%, -50%); z-index: 2000; }
+
+    /* Badge số lượng thông báo */
+    .badge-res { font-size: 0.7rem; padding: 0.35em 0.65em; margin-right: 15px; font-family: 'Inter', sans-serif; }
+
+    /* CSS DẤU CHẤM ĐỎ NHÁY */
+    .nav-dot {
+      position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+      width: 10px; height: 10px; background-color: #ef4444; border-radius: 50%;
+      box-shadow: 0 0 10px #ef4444; animation: pulse-red 1s infinite; display: none;
+    }
+    @keyframes pulse-red {
+      0% { transform: translateY(-50%) scale(0.9); opacity: 1; }
+      70% { transform: translateY(-50%) scale(1.5); opacity: 0; }
+      100% { transform: translateY(-50%) scale(0.9); opacity: 0; }
+    }
+    /* --- CSS SỬA MÀU CHỮ TIÊU ĐỀ TRONG MAIN CONTENT --- */
+
+    .main-content h2,
+    .main-content h3,
+    .main-content h4,
+    .main-content .page-title {
+      color: #570606 !important;
+      font-weight: 700;
+      font-family: 'Lora', serif;
+    }
+
+    .main-content p.text-muted,
+    .main-content span.text-muted,
+    .main-content .text-secondary {
+      color: #050404 !important;
+      font-weight: 500;
+    }
+    /* --- BẢO VỆ ĐỘ ĐẬM CỦA ICON FONT AWESOME --- */
+    .main-content i.fas,
+    .main-content i.fa-solid {
+      font-weight: 900 !important;
+    }
+  </style>
+</head>
+<body>
+<div class="modal fade" id="logoutConfirmModal" tabindex="-1" style="z-index: 1060;">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
+      <div class="mb-3">
+        <i class="fas fa-sign-out-alt text-danger" style="font-size: 3.5rem;"></i>
+      </div>
+      <h5 class="fw-bold" style="font-family: 'Lora', serif;">Xác nhận</h5>
+      <p class="text-muted small" style="font-family: 'Inter', sans-serif;">Bạn có thật sự muốn đăng xuất không?</p>
+      <div class="d-flex gap-2 w-100 mt-3">
+        <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal" style="font-family: 'Inter', sans-serif;">HỦY</button>
+        <a href="/auth/logout" class="btn btn-danger w-50 rounded-pill fw-bold" style="font-family: 'Inter', sans-serif;">ĐĂNG XUẤT</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="sidebar-header">Foodie Admin</div>
+  <div class="sidebar-menu">
+    <a onclick="loadModule('/admin/dashboard', '/admin/api/dashboard/content', this)" class="nav-item" id="nav-dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+    <a onclick="loadModule('/admin/orders', '/admin/api/orders/content', this)" class="nav-item" id="nav-orders"><i class="fas fa-file-invoice-dollar"></i> Hóa đơn</a>
+    <a onclick="loadModule('/admin/categories', '/admin/api/categories/content', this)" class="nav-item" id="nav-categories"><i class="fas fa-tags"></i> Loại món ăn</a>
+    <a onclick="loadModule('/admin/dishes', '/admin/api/dishes/content', this)" class="nav-item" id="nav-dishes"><i class="fas fa-utensils"></i> Món ăn</a>
+    <a onclick="loadModule('/admin/tables', '/admin/api/tables/content', this)" class="nav-item" id="nav-tables"><i class="fas fa-table"></i> Bàn ăn</a>
+    <a onclick="loadModule('/admin/discounts', '/admin/api/discounts/content', this)" class="nav-item" id="nav-discounts"><i class="fas fa-percentage"></i> Giảm giá</a>
+    <a onclick="loadModule('/admin/staff', '/admin/api/staff/content', this)" class="nav-item" id="nav-staff"><i class="fas fa-user-tie"></i> Nhân viên</a>
+    <a onclick="loadModule('/admin/reservations', '/admin/api/reservations/content', this)" class="nav-item" id="nav-reservations">
+      <i class="fas fa-calendar-check"></i> Đặt bàn
+      <span class="badge rounded-pill bg-danger ms-auto badge-res" id="res-count-badge" style="display: none;">0</span>
+      <div class="nav-dot" id="res-dot"></div>
+    </a>
+    <a onclick="loadModule('/admin/audit-logs', '/admin/api/audit-logs/content', this)" class="nav-item" id="nav-audit">
+      <i class="fas fa-history"></i> Nhật ký hệ thống
+    </a>
+
+    <hr class="sidebar-divider">
+
+    <a href="#" class="nav-item logout-btn" id="nav-logout" data-bs-toggle="modal" data-bs-target="#logoutConfirmModal">
+      <i class="fas fa-sign-out-alt"></i> Đăng xuất
+    </a>
+  </div>
+</div>
+
+<div class="main-content"><div id="main-layout-content"></div></div>
+<div id="loader" class="loader"><div class="spinner-border" style="width: 3rem; height: 3rem; color: var(--header-brown);"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  function updateReservationBadge() {
+    fetch('/admin/api/reservations/count-pending')
+            .then(res => res.json())
+            .then(count => {
+              const badge = document.getElementById('res-count-badge');
+              if (badge) {
+                if (count > 0) {
+                  badge.innerText = count > 99 ? "99+" : count;
+                  badge.style.display = 'block';
+                } else {
+                  badge.style.display = 'none';
+                }
+              }
+            })
+            .catch(err => console.error("Lỗi cập nhật badge:", err));
+  }
+
+  function loadModule(displayUrl, contentUrl, element) {
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    if (element) {
+      element.classList.add('active');
+      if (element.id === 'nav-reservations') {
+        const dot = document.getElementById('res-dot');
+        if (dot) dot.style.display = 'none';
+      }
+    }
+
+    if (displayUrl !== window.location.pathname) { window.history.pushState({}, '', displayUrl); }
+
+    document.getElementById('loader').style.display = 'block';
+    fetch(contentUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(res => {
+              if (res.redirected) { window.location.href = res.url; return; }
+              if (!res.ok) throw new Error("Template not found");
+              return res.text();
+            })
+            .then(html => {
+              const container = document.getElementById('main-layout-content');
+              container.innerHTML = html;
+
+              const scripts = container.querySelectorAll("script");
+              scripts.forEach(oldScript => {
+                const newScript = document.createElement("script");
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+              });
+              document.getElementById('loader').style.display = 'none';
+            })
+            .catch(err => {
+              console.error(err);
+              document.getElementById('loader').style.display = 'none';
+            });
+  }
+
+  function connectAdminSocket() {
+    const socket = new SockJS('/ws-resto');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+
+    stompClient.connect({}, function () {
+
+      // 1. Lắng nghe kênh Admin
+      stompClient.subscribe('/topic/admin', function (message) {
+        if (message.body === "NEW_RESERVATION" || message.body === "RESERVATION_UPDATED") {
+
+          updateReservationBadge(); // Gọi hàm hạ số đếm ngay lập tức
+
+          // Chỉ hiện dấu chấm đỏ nếu là đơn mới tinh
+          if (message.body === "NEW_RESERVATION") {
+            const dot = document.getElementById('res-dot');
+            if (dot) dot.style.display = 'block';
+          }
+
+          // Tự động load lại bảng danh sách nếu đang đứng ở trang Đặt bàn
+          if(document.getElementById('nav-reservations').classList.contains('active')) {
+            const isAcceptModalOpen = document.getElementById('acceptTableModal')?.classList.contains('show');
+            const isRejectModalOpen = document.getElementById('rejectModal')?.classList.contains('show');
+            if(!isAcceptModalOpen && !isRejectModalOpen) {
+              loadModule('/admin/reservations', '/admin/api/reservations/content', document.getElementById('nav-reservations'));
+            }
+          }
+        }
+      });
+
+      // 2. Lắng nghe kênh Bàn ăn
+      stompClient.subscribe('/topic/tables', function (message) {
+        if (message.body === "UPDATE_TABLE_MAP" || message.body.startsWith("RESERVATION_CONFIRMED|") || message.body.startsWith("CHECKOUT_REQUEST|")) {
+
+          updateReservationBadge(); //Kéo lại số đếm dự phòng nếu có cập nhật ảnh hưởng từ bàn
+
+          const isResActive = document.getElementById('nav-reservations').classList.contains('active');
+          const isTableActive = document.getElementById('nav-tables')?.classList.contains('active');
+
+          if (isResActive || isTableActive) {
+            const isAcceptModalOpen = document.getElementById('acceptTableModal')?.classList.contains('show');
+            const isRejectModalOpen = document.getElementById('rejectModal')?.classList.contains('show');
+
+            if (!isAcceptModalOpen && !isRejectModalOpen) {
+              if (isResActive) loadModule('/admin/reservations', '/admin/api/reservations/content', document.getElementById('nav-reservations'));
+              if (isTableActive) loadModule('/admin/tables', '/admin/api/tables/content', document.getElementById('nav-tables'));
+            }
+          }
+        }
+      });
+    });
+  }
+
+  window.addEventListener('popstate', function() { location.reload(); });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const path = window.location.pathname;
+    const navMap = {
+      '/admin/orders': 'nav-orders',
+      '/admin/categories': 'nav-categories',
+      '/admin/dishes': 'nav-dishes',
+      '/admin/tables': 'nav-tables',
+      '/admin/discounts': 'nav-discounts',
+      '/admin/staff': 'nav-staff',
+      '/admin/reservations': 'nav-reservations',
+      '/admin/audit-logs': 'nav-audit'
+    };
+
+    const targetId = navMap[path] || 'nav-dashboard';
+    const displayUrl = path === '/admin' ? '/admin/dashboard' : path;
+    const contentUrl = (path === '/admin' || path === '/admin/dashboard')
+            ? '/admin/api/dashboard/content'
+            : '/admin/api' + path.replace('/admin', '') + '/content';
+
+    loadModule(displayUrl, contentUrl, document.getElementById(targetId));
+    updateReservationBadge();
+    connectAdminSocket();
+  });
+
+  setInterval(function() {
+    fetch('/auth/api/ping', { method: 'GET' }).catch(err => console.log('Ping giữ phiên bị lỗi', err));
+  }, 15 * 60 * 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+@startuml
+skinparam state {
+  BackgroundColor LightCyan
+  BorderColor Blue
+  ArrowColor DarkBlue
+}
+
+hide empty description
+
+state "PENDING\n(Chờ chế biến)" as PENDING
+state "COOKING\n(Đang nấu)" as COOKING
+state "SERVED\n(Đã lên món / Hoàn tất)" as SERVED
+
+[*] --> PENDING : Customer xác nhận "Gọi món" từ Giỏ hàng
+[*] --> PENDING : Waiter/Admin bấm Thêm món
+
+PENDING --> COOKING : Chef bấm "Đang nấu"\n[Trên Kitchen Dashboard]
+PENDING --> SERVED : Chef bấm "Hoàn tất" luôn\n[Đồ uống, Đồ ăn sẵn]
+
+COOKING --> SERVED : Chef bấm "Hoàn tất"\n[Nấu xong & Đã giao cho Waiter]
+
+PENDING --> [*] : Waiter/Admin Hủy món\n[Xóa OrderDetail]
+COOKING --> [*] : Waiter/Admin Hủy món\n[Xóa OrderDetail - Khách đổi ý]
+
+SERVED --> [*] : Bàn được thanh toán\n[Hóa đơn chuyển sang PAID]
+
+note right of SERVED
+  Khi món đã ở trạng thái SERVED:
+  - Bếp không thể lùi trạng thái.
+  - Waiter/Admin KHÔNG THỂ xóa món.
+end note
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+start
+:Waiter / Admin chọn món cần xóa;
+:Nhập số lượng cần xóa (quantityToRemove);
+:Gửi Request POST /api/orders/remove-item;
+
+:Truy xuất OrderDetail từ Database;
+:Kiểm tra trạng thái Hóa đơn (Order);
+
+if (Order.status == PAID?) then (Đúng)
+  :Ném lỗi: "Hóa đơn đã thanh toán, không thể xóa!";
+  stop
+else (Sai)
+endif
+
+:Kiểm tra trạng thái Món ăn (ServedStatus);
+if (OrderDetail.servedStatus == SERVED?) then (Đúng)
+  :Ném lỗi: "Món đã phục vụ, không thể hủy!";
+  stop
+else (Sai - Món đang PENDING hoặc COOKING)
+endif
+
+if (quantityToRemove > 0 VÀ quantityToRemove < OrderDetail.quantity?) then (Đúng - Chỉ xóa một phần)
+  :Trừ số lượng: \nquantity = quantity - quantityToRemove;
+  :Lưu lại OrderDetail;
+else (Sai - Xóa toàn bộ món này)
+  :Xóa OrderDetail khỏi Database;
+endif
+
+:Tính lại Tổng tiền (recalculateTotal);
+:Lưu lại Hóa đơn (Order);
+
+:Bắn tín hiệu WebSocket báo Bếp & Waiter khác cập nhật;
+:Trả về kết quả "success";
+stop
+@enduml

@@ -1,0 +1,115 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+title Class Diagram - Xác thực và Phân quyền (Updated Style)
+
+' ================== DEFINE MACROS ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENUM ==================
+enum RoleType <<enumeration>> {
+    ADMIN
+    WAITER
+    CHEF
+}
+
+' ================== ENTITY ==================
+entity(User) {
+    - userId : Integer
+    - role : RoleType
+    - username : String
+    - password : String
+    - fullName : String
+    - email : String
+    - phone : String
+    - status : Boolean
+    - createdAt : Timestamp
+    + getters/setters()
+}
+
+entity(PasswordReset) {
+    - id : Long
+    - user : User
+    - token : String
+    - expiresAt : LocalDateTime
+    - isUsed : Boolean
+    + getters/setters()
+}
+
+' ================== CONTROLLER ==================
+controller(AuthController) {
+    + loginPage() : String
+    + login(username : String, password : String, session : HttpSession, model : Model) : String
+    + logout(session : HttpSession) : String
+}
+
+controller(ForgotPasswordController) {
+    + showForgotPasswordForm() : String
+    + processForgotPassword(email : String, request : HttpServletRequest, model : Model) : String
+    + showResetPasswordForm(token : String, model : Model) : String
+    + processResetPassword(token : String, password : String, model : Model) : String
+}
+
+' ================== SERVICE ==================
+service(AuthService) {
+    + authenticate(username : String, password : String) : User
+}
+
+service(PasswordResetService) {
+    + createAndSendResetToken(email : String, appUrl : String) : boolean
+    + validateToken(token : String) : PasswordReset
+    + updatePassword(reset : PasswordReset, newPassword : String) : void
+}
+
+service(EmailService) {
+    - mailSender : JavaMailSender
+    + sendResetEmail(toEmail : String, appUrl : String, token : String) : void
+}
+
+' ================== REPOSITORY ==================
+repository(UserRepository) {
+    + findByUsername(username : String) : User
+    + findByEmail(email : String) : Optional<User>
+    + existsByUsername(username : String) : boolean
+}
+
+repository(PasswordResetRepository) {
+    + findByToken(token : String) : Optional<PasswordReset>
+}
+
+' ================== CONFIG & INTERCEPTOR ==================
+class AuthInterceptor {
+    + preHandle(request : HttpServletRequest, response : HttpServletResponse, handler : Object) : boolean
+}
+
+class WebConfig {
+    + addInterceptors(registry : InterceptorRegistry) : void
+}
+
+' ================== RELATIONSHIPS ==================
+' Controller -> Service (Nét liền)
+AuthController --> AuthService
+ForgotPasswordController --> PasswordResetService
+
+' Service -> Repository & Other Services
+AuthService --> UserRepository
+PasswordResetService --> UserRepository
+PasswordResetService --> PasswordResetRepository
+PasswordResetService --> EmailService
+
+' Repository -> Entity (Nét đứt)
+UserRepository ..> User
+PasswordResetRepository ..> PasswordReset
+
+' Config & Interceptor
+WebConfig --> AuthInterceptor
+AuthInterceptor ..> User
+
+' Quan hệ nội bộ thực thể
+User "1" *-- "1" RoleType : has >
+PasswordReset "many" o-- "1" User : belongs to >
+
+@enduml

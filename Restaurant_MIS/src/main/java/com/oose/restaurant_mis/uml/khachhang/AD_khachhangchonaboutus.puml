@@ -1,0 +1,15 @@
+@startuml
+title Activity Diagram - Xem thông tin About Us
+skinparam ActivityFontSize 14
+skinparam ArrowFontSize 12
+
+start
+
+:Khách hàng truy cập vào Trang chủ;
+
+:Chọn mục "About Us" trên thanh Menu;
+
+:Hiển thị nội dung giới thiệu (Lịch sử, Tầm nhìn, Sứ mệnh);
+
+stop
+@enduml

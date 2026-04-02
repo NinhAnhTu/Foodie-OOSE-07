@@ -1,0 +1,63 @@
+@startuml
+start
+:Admin / Waiter bấm nút "Thanh toán" cho Hóa đơn;
+:Hiển thị Modal Thanh toán (paymentModalObj);
+
+:Nhân viên chọn Mã giảm giá (nếu có) và Phương thức thanh toán;
+:Giao diện tự động tính lại Số tiền cuối (calculateFinalAmount);
+:Bấm nút "Xác nhận thanh toán";
+
+:Gửi Request POST /api/orders/pay \n(kèm orderId và discountId);
+
+note right
+  **Backend Processing (OrderService)**
+end note
+
+:Truy xuất Hóa đơn (Order) và \nChi tiết món (OrderDetail) từ Database;
+
+:Kiểm tra trạng thái các món ăn;
+if (Có món nào KHÁC trạng thái "SERVED"?) then (Có)
+  :Ném Exception: \n"Hóa đơn còn món chưa phục vụ xong!";
+
+  note right
+    **Frontend Processing**
+  end note
+  :Hiển thị Modal Cảnh báo (showAdminWarning);
+  stop
+else (Không - Hợp lệ)
+endif
+
+if (Tổng tiền (finalAmount) <= 0?) then (Đúng)
+  :Ném Exception: \n"Không có khoản tiền thanh toán!";
+  :Hiển thị Modal Cảnh báo;
+  stop
+else (Sai - Hợp lệ)
+endif
+
+if (Có truyền discountId?) then (Có)
+  :Truy xuất Discount từ Database;
+  :Áp dụng % giảm giá;
+  :Tính lại finalAmount = totalAmount * (1 - % / 100);
+  :Gán Discount vào Hóa đơn;
+else (Không có Giảm giá)
+  :finalAmount = totalAmount;
+endif
+
+:Cập nhật Hóa đơn: \n- status = PAID \n- closedAt = now();
+:Lưu Hóa đơn (Order) xuống Database;
+
+:Lấy Bàn (DiningTable) đang liên kết;
+:Cập nhật Bàn: \n- status = EMPTY (Trống);
+:Lưu Bàn xuống Database;
+
+:Bắn tín hiệu WebSocket \ncập nhật sơ đồ bàn ("UPDATE_TABLE_MAP");
+:Trả về chuỗi "success";
+
+note right
+  **Frontend Processing**
+end note
+:Đóng các Modal hiện tại (forceCloseModals);
+:Hiển thị Thông báo thành công (showAdminSuccess);
+:Tải lại trang / Sơ đồ bàn (Bàn chuyển màu Xanh);
+stop
+@enduml

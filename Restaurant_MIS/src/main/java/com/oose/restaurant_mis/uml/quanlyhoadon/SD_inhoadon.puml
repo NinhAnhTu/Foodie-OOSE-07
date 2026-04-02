@@ -1,0 +1,37 @@
+@startuml
+autonumber
+actor "Admin / Waiter" as User
+boundary "Giao diện Quản lý" as MainView
+control "WaiterController" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "Trang in (invoice_print.html)" as PrintView
+
+User -> MainView: Bấm nút "In Hóa Đơn" \n(Mở tab mới hoặc Modal)
+MainView -> Controller: GET /waiter/print-invoice/{orderId}
+
+Controller -> Service: getOrderById(orderId)
+Service -> DB: Lấy Order từ Database
+DB --> Service: Trả về đối tượng Order
+Service --> Controller: Trả về Order
+
+Controller -> Service: getOrderDetails(orderId)
+Service -> DB: Lấy List<OrderDetail> thuộc orderId
+DB --> Service: Trả về List<OrderDetail>
+Service --> Controller: Trả về danh sách chi tiết món
+
+Controller -> Controller: model.addAttribute("order", order)
+Controller -> Controller: model.addAttribute("details", details)
+Controller -> Controller: model.addAttribute("bankId", "970423")
+Controller -> Controller: model.addAttribute("accountNo", "0123456789")
+
+Controller --> PrintView: Render View "waiter/invoice_print"
+
+note right of PrintView
+  Dùng Thymeleaf format tiền (#numbers.formatDecimal)
+  Load mã QR thanh toán dựa trên bankId, accountNo
+end note
+
+PrintView --> User: Hiển thị bản in khổ 80mm (Màn hình trắng đen)
+User -> PrintView: Gọi lệnh window.print() in ra máy POS
+@enduml

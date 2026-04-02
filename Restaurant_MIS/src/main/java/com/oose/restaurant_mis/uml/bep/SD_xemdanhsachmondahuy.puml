@@ -1,0 +1,29 @@
+@startuml
+title Sequence Diagram - Xem danh sách món đã hủy (Client-side logic)
+
+actor "Đầu bếp" as User
+participant "Chef Dashboard (Browser)" as UI
+participant "Server (WebSocket)" as WS
+
+== Giai đoạn 1: Cập nhật danh sách hủy (Real-time) ==
+
+WS -> UI : Message: "ITEM_REMOVED|orderId|itemName"
+activate UI
+UI -> UI : Tách chuỗi (split '|')
+UI -> UI : Lưu vào cancelledItemsMap[orderId]
+UI -> UI : Hiển thị chấm đỏ (cancel-dot) cạnh bàn tương ứng
+deactivate UI
+
+== Giai đoạn 2: Xem danh sách món đã hủy ==
+
+User -> UI : Click vào chấm đỏ (cancel-dot)
+activate UI
+
+UI -> UI : showCancelledItems(orderId)
+UI -> UI : Truy xuất cancelledItemsMap[orderId]
+
+UI -> UI : Render danh sách món vào #chefCancelBody
+UI -> User : Hiển thị Modal danh sách món đã hủy
+deactivate UI
+
+@enduml

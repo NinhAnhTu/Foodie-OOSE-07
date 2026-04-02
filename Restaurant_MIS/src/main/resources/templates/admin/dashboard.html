@@ -1,0 +1,205 @@
+<div th:fragment="content">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">Tổng quan hệ thống</h3>
+            <p class="text-muted small mb-0">Thống kê dữ liệu hoạt động của nhà hàng</p>
+        </div>
+        <div class="d-flex align-items-center gap-2 bg-white p-2 rounded-pill shadow-sm border">
+            <span class="small fw-bold text-muted ps-2"><i class="fas fa-calendar-day me-1"></i>Xem Panel theo ngày:</span>
+            <input type="date" id="panelDateFilter" class="form-control form-control-sm border-0 fw-bold text-primary" style="width: auto; background: transparent;" th:value="${panelDate}" onchange="reloadDashboard()">
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-bold text-uppercase small">Doanh thu</div>
+                        <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-money-bill-wave fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-800 text-dark mb-1" th:text="${#numbers.formatDecimal(panelRevenue, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-bold text-uppercase small">Hóa đơn</div>
+                        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-receipt fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-800 text-dark mb-1" th:text="${totalOrdersToday}">0</h3>
+                    <div class="small text-muted"><span th:text="${paidOrdersCount}">0</span> đơn đã thanh toán</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-bold text-uppercase small">Lịch hẹn chờ duyệt</div>
+                        <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-calendar-alt fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-800 text-dark mb-1" th:text="${pendingReservations}">0</h3>
+                    <div class="small text-muted">Có hẹn trong ngày này</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100" style="border-left: 4px solid #0dcaf0 !important;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="text-muted fw-bold text-uppercase small">Bàn trống <span class="badge bg-info ms-1">Hiện tại</span></div>
+                        <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-table fs-5"></i>
+                        </div>
+                    </div>
+                    <h3 class="fw-800 text-dark mb-1" th:text="${emptyTables}">0</h3>
+                    <div class="small text-danger fw-bold"><span th:text="${occupiedTables}"></span> bàn đang có khách</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-0 px-4 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h5 class="fw-bold text-dark mb-0">Biểu đồ doanh thu</h5>
+                    <div class="d-flex align-items-center gap-2 bg-light p-1 rounded-3 border">
+                        <input type="date" id="chartStartDate" class="form-control form-control-sm border-0 bg-transparent" th:value="${startDate}">
+                        <span class="text-muted">-</span>
+                        <input type="date" id="chartEndDate" class="form-control form-control-sm border-0 bg-transparent" th:value="${endDate}">
+                        <button class="btn btn-sm btn-dark px-3 rounded-2" onclick="reloadDashboard()">Lọc</button>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <canvas id="revenueChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-header bg-white border-0 pt-4 pb-0 px-4">
+                    <h5 class="fw-bold text-dark mb-0">Tỉ trọng món bán chạy</h5>
+                    <p class="small text-muted mb-0">Theo khoảng thời gian biểu đồ</p>
+                </div>
+                <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                    <canvas id="pieChart" height="250" style="max-height: 280px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        // Hàm tải lại Dashboard với các tham số Filter
+        function reloadDashboard() {
+            var pDate = document.getElementById('panelDateFilter').value;
+            var sDate = document.getElementById('chartStartDate').value;
+            var eDate = document.getElementById('chartEndDate').value;
+
+            // Đảm bảo startDate <= endDate
+            if(sDate > eDate) {
+                alert("Ngày kết thúc không được nhỏ hơn ngày bắt đầu!");
+                return;
+            }
+
+            var url = `/admin/api/dashboard/content?panelDate=${pDate}&startDate=${sDate}&endDate=${eDate}`;
+            loadModule('/admin/dashboard', url, document.getElementById('nav-dashboard'));
+        }
+
+        setTimeout(function() {
+            // 1. DỮ LIỆU BIỂU ĐỒ ĐƯỜNG
+            /*<![CDATA[*/
+            var chartLabels = /*[[${chartLabels}]]*/ [];
+            var chartData = /*[[${chartData}]]*/ [];
+            /*]]>*/
+
+            var ctxLine = document.getElementById('revenueChart').getContext('2d');
+            var gradient = ctxLine.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');
+            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+            new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Doanh thu (VNĐ)',
+                        data: chartData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e2e8f0' }, ticks: { callback: function(value) { return value.toLocaleString() + 'đ'; } } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 2. DỮ LIỆU BIỂU ĐỒ TRÒN (DOUGHNUT)
+            /*<![CDATA[*/
+            var pieLabels = /*[[${pieLabels}]]*/ [];
+            var pieData = /*[[${pieData}]]*/ [];
+            /*]]>*/
+
+            var ctxPie = document.getElementById('pieChart').getContext('2d');
+
+            // Xử lý trường hợp không có dữ liệu
+            if(pieData.length === 0) {
+                pieLabels = ['Chưa có dữ liệu'];
+                pieData = [1];
+                var pieColors = ['#e2e8f0'];
+            } else {
+                var pieColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'];
+            }
+
+            new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        data: pieData,
+                        backgroundColor: pieColors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 15, font: {family: 'Inter', size: 11} } }
+                    }
+                }
+            });
+
+        }, 100);
+    </script>
+</div>

@@ -1,0 +1,294 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Quản lý thực đơn</h3>
+            <p class="text-muted small mb-0">Danh sách các món ăn đang kinh doanh tại nhà hàng</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light shadow-sm rounded-pill px-3 border" onclick="refreshPage()" title="Làm mới">
+                <i class="fas fa-sync-alt text-secondary"></i>
+            </button>
+            <select id="filterCategory" class="form-select rounded-pill shadow-sm border" style="width: 180px;" onchange="searchDish()">
+                <option value="">Tất cả danh mục</option>
+                <option th:each="cat : ${categories}"
+                        th:value="${cat.categoryId}"
+                        th:text="${cat.name}"
+                        th:selected="${cat.categoryId == selectedCategoryId}"></option>
+            </select>
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 250px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchDishInput" class="form-control border-0 shadow-none bg-white" placeholder="Tìm món ăn" th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchDish()">Tìm</button>
+            </div>
+
+            <button class="btn btn-primary rounded-pill px-4 text-nowrap shadow-sm ms-2" onclick="openDishModal()">
+                <i class="fas fa-plus me-2"></i> Thêm món
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Món ăn</th>
+                    <th>Loại</th>
+                    <th>Giá bán</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="dish : ${dishPage.content}">
+                    <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                            <img th:src="${dish.imageUrl != null ? dish.imageUrl : 'https://via.placeholder.com/40'}"
+                                 class="rounded-3 me-3 border" width="45" height="45" style="object-fit: cover;">
+                            <span class="fw-bold text-dark" th:text="${dish.name}"></span>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-light text-dark border px-3" th:text="${dish.category.name}"></span></td>
+                    <td class="fw-bold text-primary" th:text="${#numbers.formatDecimal(dish.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></td>
+                    <td>
+                        <span th:class="${dish.isAvailable ? 'badge rounded-pill bg-success-subtle text-success border border-success' : 'badge rounded-pill bg-danger-subtle text-danger border border-danger'}"
+                              th:text="${dish.isAvailable ? 'Đang bán' : 'Hết hàng'}"></span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-light border me-1 text-primary" th:onclick="'editDish(' + ${dish.itemId} + ')'"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-light border text-danger" th:onclick="'confirmDeleteDish(' + ${dish.itemId} + ')'"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+                <tr th:if="${dishPage.totalElements == 0}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                        <p class="fw-bold mb-1">Không tìm thấy món ăn nào</p>
+                        <p class="small mb-0">Vui lòng thử lại với từ khóa hoặc loại món khác.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${dishPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, dishPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == dishPage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="dishModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <form id="dishForm" enctype="multipart/form-data">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold" id="dishModalTitle">Thông tin món ăn</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body px-4 pt-0">
+                        <input type="hidden" name="itemId" id="dishId">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Tên món ăn</label>
+                            <input type="text" name="name" id="dishName" class="form-control bg-light border-0 py-2" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary">Loại món</label>
+                                <select name="category.categoryId" id="dishCategory" class="form-select bg-light border-0" required>
+                                    <option th:each="cat : ${categories}" th:value="${cat.categoryId}" th:text="${cat.name}"></option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold text-secondary">Giá bán (VNĐ)</label>
+                                <input type="number" name="price" id="dishPrice" class="form-control bg-light border-0" required min="0" oninput="this.value = Math.abs(this.value)">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Ảnh món ăn</label>
+                            <input type="file" name="imageFile" id="dishImageFile" class="form-control bg-light border-0" accept="image/*">
+                            <div class="mt-2 text-center">
+                                <img id="dishPreview" src="" class="rounded-3 border d-none" style="width: 100px; height: 100px; object-fit: cover;">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Mô tả món ăn</label>
+                            <textarea name="description" id="dishDesc" class="form-control bg-light border-0" rows="3"></textarea>
+                        </div>
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" name="isAvailable" id="dishAvailable" checked>
+                            <label class="form-check-label ms-2 fw-medium">Kích hoạt trạng thái bán hàng</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pb-4 justify-content-center">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Đóng</button>
+                        <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">Lưu dữ liệu</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteDishModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-trash-alt text-danger" style="font-size: 3.5rem;"></i></div>
+                <h4 class="fw-bold">Xác nhận xóa?</h4>
+                <p class="text-muted small">Món ăn này sẽ bị gỡ khỏi thực đơn</p>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="button" id="btnConfirmDeleteDish" class="btn btn-danger w-50 rounded-pill fw-bold">Đồng ý</button>
+                    <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminAlertModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 20px;">
+                <div class="mb-3"><i class="fas fa-exclamation-circle text-danger" style="font-size: 3.5rem;"></i></div>
+                <h5 class="fw-bold text-dark">Lỗi thao tác!</h5>
+                <p class="text-muted small" id="adminAlertMsg"></p>
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #3b82f6 !important; border-color: #3b82f6 !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        var dishModal = new bootstrap.Modal(document.getElementById('dishModal'));
+        var alertModal = new bootstrap.Modal(document.getElementById('adminAlertModal'));
+        var confirmDeleteDishModal = new bootstrap.Modal(document.getElementById('confirmDeleteDishModal'));
+
+        function changePage(page) {
+            const keyword = document.getElementById('searchDishInput').value.trim();
+            const categoryId = document.getElementById('filterCategory').value;
+
+            let url = `/admin/api/dishes/content?page=${page}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (categoryId) url += `&categoryId=${categoryId}`;
+
+            loadModule('/admin/dishes', url, null);
+        }
+
+        function searchDish() { changePage(0); }
+
+        function refreshPage() {
+            document.getElementById('searchDishInput').value = '';
+            document.getElementById('filterCategory').value = '';
+            changePage(0);
+        }
+
+        document.getElementById('searchDishInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchDish();
+        });
+
+        function showAlert(msg) {
+            document.getElementById('adminAlertMsg').innerText = msg;
+            alertModal.show();
+        }
+
+        function openDishModal() {
+            document.getElementById('dishForm').reset();
+            document.getElementById('dishId').value = '';
+            document.getElementById('dishPreview').classList.add('d-none');
+            document.getElementById('dishModalTitle').innerText = 'Thêm món ăn mới';
+            dishModal.show();
+        }
+
+        function editDish(id) {
+            fetch('/admin/api/dishes/edit/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('dishId').value = data.itemId;
+                    document.getElementById('dishName').value = data.name;
+                    document.getElementById('dishCategory').value = data.category.categoryId;
+                    document.getElementById('dishPrice').value = data.price;
+                    document.getElementById('dishDesc').value = data.description;
+                    document.getElementById('dishAvailable').checked = data.isAvailable;
+
+                    const preview = document.getElementById('dishPreview');
+                    if(data.imageUrl) {
+                        preview.src = data.imageUrl;
+                        preview.classList.remove('d-none');
+                    } else {
+                        preview.classList.add('d-none');
+                    }
+
+                    document.getElementById('dishModalTitle').innerText = 'Cập nhật món ăn';
+                    dishModal.show();
+                });
+        }
+
+        document.getElementById('dishForm').onsubmit = function(e) {
+            e.preventDefault();
+
+            // [KIỂM TRA GIÁ TRỊ ÂM TRƯỚC KHI GỬI]
+            const price = parseFloat(document.getElementById('dishPrice').value);
+            if (price < 0) {
+                showAlert("Giá bán không được là số âm!");
+                return;
+            }
+
+            const formData = new FormData(this);
+            formData.set('isAvailable', document.getElementById('dishAvailable').checked);
+
+            fetch('/admin/api/dishes/save', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if(res.ok) {
+                    dishModal.hide();
+                    changePage(/*[[${currentPage != null ? currentPage : 0}]]*/ 0);
+                } else {
+                    const errorMessage = await res.text();
+                    showAlert(errorMessage);
+                }
+            }).catch(err => showAlert("Lỗi không thể kết nối đến máy chủ!"));
+        };
+
+        function confirmDeleteDish(id) {
+            confirmDeleteDishModal.show();
+            document.getElementById('btnConfirmDeleteDish').onclick = function() {
+                fetch('/admin/api/dishes/delete/' + id, {method: 'DELETE'})
+                    .then(res => {
+                        if(res.ok) {
+                            confirmDeleteDishModal.hide();
+                            let currentRowCount = document.querySelectorAll('tbody tr').length;
+                            let targetPage = /*[[${currentPage != null ? currentPage : 0}]]*/ 0;
+                            if (currentRowCount === 1 && targetPage > 0) { targetPage--; }
+                            changePage(targetPage);
+                        } else {
+                            confirmDeleteDishModal.hide();
+                            showAlert("Không thể xóa món ăn này vì đã có dữ liệu hóa đơn liên quan!");
+                        }
+                    });
+            };
+        }
+
+        if (!window.adminMenuStompClient) {
+            const socket = new SockJS('/ws-resto');
+            window.adminMenuStompClient = Stomp.over(socket);
+            window.adminMenuStompClient.debug = null;
+            window.adminMenuStompClient.connect({}, function() {
+                window.adminMenuStompClient.subscribe('/topic/menu', function() {
+                    changePage(/*[[${currentPage != null ? currentPage : 0}]]*/ 0);
+                });
+            });
+        }
+    </script>
+</div>

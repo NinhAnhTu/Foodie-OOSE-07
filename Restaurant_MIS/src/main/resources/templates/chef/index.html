@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="_csrf" th:content="${_csrf != null ? _csrf.token : ''}"/>
+    <meta name="_csrf_header" th:content="${_csrf != null ? _csrf.headerName : ''}"/>
+
+    <title>Kitchen Dashboard - RESTO MIS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        body { background: #f1f5f9; font-family: 'Inter', sans-serif; color: #1e293b; display: flex; margin: 0; }
+
+        i.fas, i.fa-solid { font-weight: 900 !important; }
+
+        h2, h3, h4, h5, .modal-title, .lora-font {
+            font-family: 'Lora', serif !important;
+            font-weight: 700;
+        }
+
+        .drawer { width: 280px; background: #1e293b; height: 100vh; position: fixed; display: flex; flex-direction: column; box-shadow: 4px 0 15px rgba(0,0,0,0.05); z-index: 1000;}
+        .user-profile .text-white { font-family: 'Lora', serif; font-size: 1.25rem !important; }
+        .nav-link { padding: 1.2rem 1.5rem; color: #94a3b8; text-decoration: none; display: flex; align-items: center; cursor: pointer; transition: 0.3s; font-weight: 600; font-size: 1.05rem;}
+        .nav-link:hover, .nav-link.active { background: #334155; color: #fff; border-right: 4px solid #ea580c; }
+        .logout-btn { margin-top: auto; padding: 1.5rem; border-top: 1px solid #334155; color: #ef4444; cursor: pointer; transition: 0.2s; }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.1); }
+
+        .main-content { flex: 1; margin-left: 280px; padding: 2.5rem; min-height: 100vh; }
+        .fw-800 { font-weight: 800; }
+
+        .note-box { background: #fff8f1; color: #ea580c; padding: 6px 12px; border-radius: 8px; display: inline-block; font-size: 0.9rem; margin-top: 8px; border-left: 3px solid #f97316; font-weight: 600; }
+        .cancel-dot {
+            display: inline-block; width: 14px; height: 14px; background-color: #ef4444;
+            border-radius: 50%; box-shadow: 0 0 10px #ef4444; animation: pulse-red 1s infinite;
+            cursor: pointer; margin-left: 10px; vertical-align: text-top;
+        }
+        @keyframes pulse-red { 0% { transform: scale(0.9); opacity: 1; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(0.9); opacity: 0; } }
+
+        .btn-outline-primary { color: #ea580c; border-color: #ea580c; }
+        .btn-outline-primary:hover { background: #ea580c; color: white; border-color: #ea580c; }
+
+        .card-header-kitchen { border-bottom: 2px dashed #e2e8f0; }
+    </style>
+</head>
+<body>
+
+<div class="drawer">
+    <div class="user-profile p-4 border-bottom border-secondary d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="min-width: 55px; height: 55px; background: linear-gradient(135deg, #f97316, #ea580c); color: white; font-size: 1.5rem;">
+            <i class="fas fa-hat-chef"></i>
+        </div>
+        <div style="overflow: hidden;">
+            <div class="fw-bold text-white text-truncate" th:text="${session.loggedInUser != null ? session.loggedInUser.fullName : 'Đầu bếp'}">Chef Name</div>
+            <div class="text-warning small mt-1 fw-bold text-uppercase" style="letter-spacing: 1px;"><i class="fas fa-circle text-success me-1" style="font-size: 0.6rem;"></i> Bếp Trưởng</div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a class="nav-link active">
+            <i class="fas fa-fire me-3 text-danger"></i>Đang chế biến
+        </a>
+    </div>
+
+    <div class="logout-btn fw-bold text-center" onclick="confirmLogout()">
+        <i class="fas fa-sign-out-alt me-2"></i> ĐĂNG XUẤT
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h2 class="mb-0 text-dark">
+            Danh sách món đợi <span class="badge bg-danger rounded-pill shadow-sm fs-5 ms-2" style="font-family: 'Inter', sans-serif;" id="orderCount">0</span>
+        </h2>
+        <div id="connectionStatus" class="fw-bold text-success bg-success-subtle px-3 py-2 rounded-pill shadow-sm border border-success-subtle">
+            <i class="fas fa-wifi me-2"></i> Trực tuyến
+        </div>
+    </div>
+
+    <div id="kitchenList">
+        <div class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 fw-bold">Đang tải danh sách món ăn...</p></div>
+    </div>
+</div>
+
+<div class="modal fade" id="chefCancelModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0 mt-2 mx-2">
+                <h5 class="text-danger mb-0"><i class="fas fa-exclamation-circle me-2"></i>Món vừa bị hủy</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4" id="chefCancelBody">
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center pb-4">
+                <button class="btn btn-light border fw-bold rounded-pill px-5 text-secondary" onclick="clearCancelledItems()">ĐÃ HIỂU</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="logoutConfirmModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+            <div class="mb-3"><i class="fas fa-sign-out-alt text-danger" style="font-size: 3.5rem;"></i></div>
+            <h4 class="text-dark">Đăng xuất</h4>
+            <p class="text-muted small mb-0" style="font-family: 'Inter', sans-serif;">Bạn có chắc chắn muốn rời khỏi ca trực bếp?</p>
+            <div class="d-flex gap-2 w-100 mt-4">
+                <button type="button" class="btn btn-danger w-50 rounded-pill fw-bold shadow-sm" style="font-family: 'Inter', sans-serif;" onclick="window.location.href='/auth/logout'">ĐỒNG Ý</button>
+                <button type="button" class="btn btn-light w-50 rounded-pill fw-bold border text-secondary" style="font-family: 'Inter', sans-serif;" data-bs-dismiss="modal">HỦY</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    let cancelledItemsMap = {};
+    let currentViewingOrderId = null;
+    let logoutModal = new bootstrap.Modal(document.getElementById('logoutConfirmModal'));
+
+    function connectKitchenSocket() {
+        const socket = new SockJS('/ws-resto');
+        const stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+        stompClient.connect({}, function () {
+            stompClient.subscribe('/topic/kitchen', (msg) => {
+                if (msg.body.startsWith("ITEM_REMOVED|")) {
+                    let parts = msg.body.split("|");
+                    let oId = parseInt(parts[1]);
+                    let iName = parts[2];
+                    if(!cancelledItemsMap[oId]) cancelledItemsMap[oId] = [];
+                    cancelledItemsMap[oId].push(iName);
+                }
+                refreshKitchenList();
+            });
+        });
+    }
+
+    function refreshKitchenList() {
+        fetch('/chef/api/items')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('orderCount').innerText = data.length;
+                let html = '';
+                data.forEach(order => {
+                    const items = order.items || [];
+                    let hasCancelDot = (cancelledItemsMap[order.orderId] && cancelledItemsMap[order.orderId].length > 0) ?
+                        `<span class="cancel-dot" title="Có món vừa bị hủy!" onclick="showCancelledItems(${order.orderId})"></span>` : '';
+
+                    html += `
+          <div class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-radius: 20px;">
+            <div class="card-header bg-white card-header-kitchen py-3 d-flex justify-content-between align-items-center px-4">
+              <span class="lora-font fs-5" style="color: #570606;"><i class="fas fa-utensils text-danger me-2"></i>BÀN: ${order.tableName} ${hasCancelDot}</span>
+              <span class="badge bg-dark text-white px-3 py-2 fs-6 rounded-pill" style="font-family: 'Inter', sans-serif;">HĐ #${order.orderId}</span>
+            </div>
+            <div class="card-body p-0">
+              <table class="table table-hover align-middle mb-0">
+                <tbody>
+                  ${items.map(item => `
+                  <tr>
+                    <td width="45%" class="ps-4 py-4">
+                      <div class="fw-bold text-dark" style="font-size: 1.15rem;">${item.menuItemName}</div>
+                      ${item.note ? `<div class="note-box"><i class="fas fa-sticky-note me-2"></i>${item.note}</div>` : ''}
+                    </td>
+                    <td class="text-center fw-bold fs-4 text-danger">x${item.quantity}</td>
+                    <td class="text-center">
+                      <span class="badge ${item.status === 'COOKING' ? 'bg-warning text-dark shadow-sm' : 'bg-light text-secondary border'} px-3 py-2 rounded-pill fs-6">
+                        ${item.status === 'COOKING' ? 'ĐANG NẤU' : 'CHỜ'}
+                      </span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn ${item.status === 'PENDING' ? 'btn-outline-primary' : 'btn-success'} fw-bold rounded-pill px-4 py-2 shadow-sm"
+                                onclick="updateStatus(${item.orderDetailId}, '${item.status === 'PENDING' ? 'COOKING' : 'SERVED'}')">
+                          ${item.status === 'PENDING' ? 'NHẬN MÓN' : 'HOÀN THÀNH <i class="fas fa-check ms-1"></i>'}
+                        </button>
+                    </td>
+                  </tr>`).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+                });
+                document.getElementById('kitchenList').innerHTML = html ||
+                    '<div class="text-center py-5 text-muted mt-5"><i class="fas fa-clipboard-check fa-4x mb-3" style="color: #cbd5e1;"></i><h4 class="lora-font text-secondary">Bếp đang rảnh</h4><p>Chưa có món ăn nào cần chế biến lúc này.</p></div>';
+            })
+            .catch(err => console.error("Lỗi nạp dữ liệu Chef:", err));
+    }
+
+    function showCancelledItems(orderId) {
+        currentViewingOrderId = orderId;
+        let items = cancelledItemsMap[orderId] || [];
+        let html = items.map(i => `<div class="mb-2 p-3 rounded bg-danger-subtle text-danger border-start border-danger border-4 fw-bold shadow-sm">${i}</div>`).join('');
+        document.getElementById('chefCancelBody').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('chefCancelModal')).show();
+    }
+
+    function clearCancelledItems() {
+        if(currentViewingOrderId) {
+            delete cancelledItemsMap[currentViewingOrderId];
+            currentViewingOrderId = null;
+        }
+        bootstrap.Modal.getInstance(document.getElementById('chefCancelModal')).hide();
+        refreshKitchenList();
+    }
+
+    function updateStatus(detailId, status) {
+        const token = document.querySelector("meta[name='_csrf']").content;
+        const header = document.querySelector("meta[name='_csrf_header']").content;
+
+        const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        if (header && token) headers[header] = token;
+
+        fetch(`/chef/api/update-status/${detailId}?status=${status}`, {
+            method: 'POST', headers: headers
+        }).then(res => res.text()).then(data => { if(data === 'success') refreshKitchenList(); else alert("Lỗi: " + data); });
+    }
+
+    // Gọi Modal Đăng xuất thay vì dùng confirm mặc định
+    function confirmLogout() {
+        logoutModal.show();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { connectKitchenSocket(); refreshKitchenList(); });
+</script>
+</body>
+</html>

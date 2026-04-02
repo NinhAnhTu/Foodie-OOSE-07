@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "Trình duyệt (discounts.html)" as View
+control "DiscountAdminController" as Controller
+participant "DiscountService" as Service
+database "Database" as DB
+
+Admin -> View: Nhập từ khóa / Chọn ngày / Đổi trạng thái
+View -> View: onChange / onKeyPress -> changePage(0)
+View -> Controller: GET /admin/api/discounts/content?keyword=...&startDate=...
+
+Controller -> Controller: Ép kiểu startDate & endDate sang LocalDate (Nếu có)
+
+Controller -> Service: searchDiscounts(keyword, sDate, eDate, isActive, page, size)
+
+Service -> Service: start = sDate.atStartOfDay()\nend = eDate.atTime(LocalTime.MAX)
+Service -> DB: searchDiscounts(keyword, start, end, isActive, Pageable)
+DB --> Service: Trả về Page<Discount>
+Service --> Controller: Trả về Page<Discount>
+
+Controller -> Controller: model.addAttribute("discountPage", discountPage)
+Controller -> Controller: model.addAttribute("keyword", keyword)
+Controller -> Controller: model.addAttribute("startDate", startDate)\n... (Giữ trạng thái bộ lọc)
+
+Controller --> View: Render HTML fragment "admin/discounts :: content"
+View --> Admin: Cập nhật bảng và Giữ nguyên các ô nhập liệu
+@enduml

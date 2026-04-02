@@ -1,0 +1,24 @@
+@startuml
+start
+:Người dùng nhập username/password;
+:Hệ thống tìm user theo username;
+if (Tồn tại?) then (Không)
+  :Hiển thị lỗi "Sai tên đăng nhập hoặc mật khẩu";
+  stop
+else (Có)
+  :So sánh password (plain text);
+  if (Không khớp?) then (Không)
+    :Hiển thị lỗi "Sai tên đăng nhập hoặc mật khẩu";
+    stop
+  else (Khớp)
+    if (status == false?) then (Đã khóa)
+      :Hiển thị lỗi "Tài khoản này đã bị khóa";
+      stop
+    else (Hoạt động)
+      :Lưu user vào session;
+      :Điều hướng theo role (Quản lý -> /admin, Phục vụ -> /waiter, Đầu bếp -> /chef);
+    endif
+  endif
+endif
+stop
+@enduml

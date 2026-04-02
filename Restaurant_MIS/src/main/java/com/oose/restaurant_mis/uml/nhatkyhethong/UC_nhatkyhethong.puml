@@ -1,0 +1,26 @@
+@startuml
+title Use Case Diagram - Nhật ký hệ thống (Audit Log)
+
+actor "Quản lý (Admin)" as admin
+actor "Hệ thống (System)" as system
+
+package "Quản lý Nhật ký" {
+    usecase "Xem danh sách Nhật ký" as UC1
+    usecase "Ghi nhận thao tác tự động (Auto Logging)" as UC2
+    usecase "Tìm kiếm & Lọc nhật ký" as UC3
+    usecase "So sánh dữ liệu cũ/mới (JSON comparison)" as UC4
+}
+
+admin --> UC1
+admin --> UC3
+UC1 ..> UC4 : <<extend>>
+UC2 --> system
+
+note right of UC2
+  Hệ thống tự động ghi lại các hành động:
+  - Cập nhật món ăn
+  - Xóa hóa đơn/món
+  - Thanh toán thành công
+  - Thay đổi nhân sự
+end note
+@enduml

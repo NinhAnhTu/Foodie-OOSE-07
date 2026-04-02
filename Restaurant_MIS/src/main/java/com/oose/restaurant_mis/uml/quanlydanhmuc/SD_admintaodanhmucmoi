@@ -1,0 +1,34 @@
+@startuml
+actor Admin
+participant "Browser (categories.html)" as Browser
+participant "CategoryAdminController" as Controller
+participant "CategoryService" as Service
+participant "CategoryRepository" as Repo
+participant "AuditService" as Audit
+participant "Database" as DB
+
+Admin -> Browser: Click "Thêm loại mới"
+Browser -> Browser: Mở modal, nhập tên, chọn trạng thái
+Admin -> Browser: Submit form
+Browser -> Controller: POST /admin/api/categories/save (form data)
+activate Controller
+
+Controller -> Service: save(category)
+activate Service
+Service -> Repo: save(category)
+Repo -> DB: INSERT categories (name, display_order, is_active)
+DB --> Repo: generated id
+Repo --> Service: saved category
+Service --> Controller: done
+deactivate Service
+
+Controller -> Audit: log(user, "CREATE", "Category", savedId, null, savedCategory)
+activate Audit
+Audit -> DB: INSERT audit_logs
+Audit --> Controller: done
+deactivate Audit
+
+Controller --> Browser: ResponseEntity.ok("success")
+deactivate Controller
+Browser -> Browser: Đóng modal, tải lại danh sách
+@enduml

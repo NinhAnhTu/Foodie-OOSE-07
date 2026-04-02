@@ -1,0 +1,50 @@
+@startuml
+title Sequence Diagram - Chọn món & Cập nhật giỏ hàng
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "table-menu.html" as View
+control "CustomerOrderController" as Controller
+participant "HttpSession" as Session
+participant "MenuItemService" as DishService
+participant "MenuItemRepository" as DishRepo
+database "Database" as DB
+
+    Customer -> View: Bấm + / - / thêm món
+    View -> Controller: POST /table/api/cart/update(itemId, qtyChange, sesion)
+
+    activate Controller
+
+    Controller -> DishService: getById(itemId)
+    activate DishService
+
+    DishService -> DishRepo: findById(itemId)
+    activate DishRepo
+
+    DishRepo -> DB: SELECT menu_item
+    activate DB
+    DB --> DishRepo: MenuItem
+    deactivate DB
+
+    DishRepo --> DishService: MenuItem
+    deactivate DishRepo
+
+    DishService --> Controller: MenuItem
+    deactivate DishService
+
+    Controller -> Session: getAttribute("cart")
+    Session --> Controller: Current Cart
+
+    Controller -> Controller: kiểm tra isAvailable
+
+    alt món hợp lệ
+        Controller -> Session: setAttribute("cart", updatedCart)
+        Controller --> View: success
+    else hết món / lỗi
+        Controller --> View: error
+    end
+
+    deactivate Controller
+
+
+@enduml

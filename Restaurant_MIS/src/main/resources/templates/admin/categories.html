@@ -1,0 +1,240 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Quản lý loại món ăn</h3>
+            <p class="text-muted small mb-0">Danh mục thực đơn </p>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light shadow-sm rounded-pill px-3 border" onclick="refreshPage()" title="Làm mới">
+                <i class="fas fa-sync-alt text-secondary"></i>
+            </button>
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 250px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchInput" class="form-control border-0 shadow-none bg-white" placeholder="Tìm danh mục" th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchCategory()">Tìm</button>
+            </div>
+            <button class="btn btn-primary shadow-sm rounded-pill px-4 text-nowrap" onclick="openAddModal()">
+                <i class="fas fa-plus me-2"></i> Thêm loại mới
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Tên loại món</th>
+                    <th class="py-3">Trạng thái</th>
+                    <th class="text-end pe-4 py-3">Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="cat : ${categoryPage.content}">
+                    <td class="ps-4">
+                        <span class="fw-bold text-dark" th:text="${cat.name}"></span>
+                    </td>
+                    <td>
+                        <span th:if="${cat.isActive}" class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3">Hoạt động</span>
+                        <span th:unless="${cat.isActive}" class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3">Tạm dừng</span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-light text-primary border me-1" th:onclick="'editCategory(' + ${cat.categoryId} + ')'">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-light text-danger border" th:onclick="'deleteCategory(' + ${cat.categoryId} + ')'">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${categoryPage.totalElements == 0}">
+                    <td colspan="3" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">Không tìm thấy loại món ăn nào.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${categoryPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, categoryPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == categoryPage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <form id="categoryForm">
+                    <div class="modal-header border-bottom-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="modalTitle">Thông tin loại món</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body px-4">
+                        <input type="hidden" name="categoryId" id="catId">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-bold">Tên danh mục</label>
+                            <input type="text" name="name" id="catName" class="form-control bg-light border-0 py-2" required>
+                        </div>
+                        <input type="hidden" name="displayOrder" id="catOrder" value="0">
+
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input shadow-none" type="checkbox" name="isActive" id="catActive" checked>
+                            <label class="form-check-label fw-medium ms-2">Cho phép hoạt động</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0 pb-4 justify-content-center">
+                        <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm">Lưu lại</button>
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-trash-alt text-danger" style="font-size: 3.5rem;"></i></div>
+                <h5 class="fw-bold text-dark">Xác nhận xóa</h5>
+                <p class="text-muted small mb-0">Bạn có chắc chắn muốn xóa mục này? Dữ liệu không thể khôi phục.</p>
+                <div class="d-flex gap-2 w-100 mt-4">
+                    <button type="button" class="btn btn-danger w-50 rounded-pill fw-bold" id="btnConfirmDelete">Đồng ý</button>
+                    <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="errorModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-exclamation-triangle text-warning" style="font-size: 3.5rem;"></i></div>
+                <h5 class="fw-bold text-dark">Lỗi thao tác</h5>
+                <p class="text-muted small mb-0" id="errorModalMsg">Thông báo lỗi sẽ hiển thị ở đây.</p>
+                <div class="mt-4">
+                    <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">Đã hiểu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #3b82f6 !important; border-color: #3b82f6 !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        var catModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+        var confirmDeleteModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal')); // Khởi tạo Error Modal
+
+        function changePage(page) {
+            const keyword = document.getElementById('searchInput').value.trim();
+            let url = `/admin/api/categories/content?page=${page}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+
+            loadModule('/admin/categories', url, null);
+        }
+
+        function searchCategory() { changePage(0); }
+
+        function refreshPage() {
+            document.getElementById('searchInput').value = '';
+            changePage(0);
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchCategory();
+        });
+
+        function openAddModal() {
+            document.getElementById('categoryForm').reset();
+            document.getElementById('catId').value = '';
+            document.getElementById('catName').value = '';
+            document.getElementById('catOrder').value = '0';
+            document.getElementById('catActive').checked = true;
+
+            document.getElementById('modalTitle').innerText = 'Thêm loại món ăn mới';
+            catModal.show();
+        }
+
+        function editCategory(id) {
+            fetch('/admin/api/categories/edit/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('catId').value = data.categoryId;
+                    document.getElementById('catName').value = data.name;
+                    document.getElementById('catOrder').value = data.displayOrder;
+                    document.getElementById('catActive').checked = data.isActive;
+                    document.getElementById('modalTitle').innerText = 'Cập nhật loại món';
+                    catModal.show();
+                });
+        }
+
+        document.getElementById('categoryForm').onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            formData.set('isActive', document.getElementById('catActive').checked);
+
+            fetch('/admin/api/categories/save', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if (res.ok) {
+                    catModal.hide();
+                    changePage(/*[[${currentPage != null ? currentPage : 0}]]*/ 0);
+                } else {
+                    const errorMessage = await res.text();
+                    document.getElementById('errorModalMsg').innerText = errorMessage;
+                    errorModal.show();
+                }
+            }).catch(err => {
+                document.getElementById('errorModalMsg').innerText = "Không thể kết nối đến máy chủ!";
+                errorModal.show();
+            });
+        };
+
+        function deleteCategory(id) {
+            confirmDeleteModal.show();
+
+            document.getElementById('btnConfirmDelete').onclick = function() {
+                fetch('/admin/api/categories/delete/' + id, {method: 'DELETE'})
+                    .then(res => {
+                        if(res.ok) {
+                            confirmDeleteModal.hide();
+
+                            let currentRowCount = document.querySelectorAll('tbody tr').length;
+                            let targetPage = /*[[${currentPage != null ? currentPage : 0}]]*/ 0;
+
+                            // Nếu bảng chỉ có 1 dòng dữ liệu thật và đang không ở trang đầu tiên
+                            if (currentRowCount === 1 && targetPage > 0) {
+                                targetPage--; // Lùi lại 1 trang
+                            }
+
+                            changePage(targetPage);
+                        } else {
+                            confirmDeleteModal.hide();
+                            document.getElementById('errorModalMsg').innerText = "Không thể xóa vì danh mục đang chứa món ăn.";
+                            errorModal.show();
+                        }
+                    });
+            };
+        }
+    </script>
+</div>

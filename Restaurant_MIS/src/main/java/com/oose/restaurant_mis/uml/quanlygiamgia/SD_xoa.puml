@@ -1,0 +1,41 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "discounts.html" as View
+control "DiscountAdminController" as Controller
+participant "DiscountService" as Service
+participant "AuditService" as Audit
+database "Database" as DB
+
+Admin -> View: Bấm nút "Xóa" (Thùng rác)
+View -> View: confirmDeleteDiscountModal.show()
+Admin -> View: Xác nhận "OK"
+
+View -> Controller: DELETE /admin/api/discounts/delete/{id}
+Controller -> Controller: Kiểm tra Session
+
+Controller -> Service: delete(id, admin)
+Service -> DB: findById(id)
+DB --> Service: Trả về oldValue
+
+Service -> DB: deleteById(id)
+
+alt Đang có hóa đơn sử dụng (Ràng buộc khóa ngoại)
+    DB --> Service: Exception (DataIntegrityViolation)
+    Service --> Controller: Ném Exception
+    Controller --> View: HTTP 400 "Không thể xóa vì đã có hóa đơn sử dụng"
+    View -> View: errorModal.show()
+else Thành công
+    DB --> Service: Đã xóa
+    Service -> Audit: log(admin, "XÓA GIẢM GIÁ", ..., oldValue, null)
+    Service --> Controller: Xong
+    Controller --> View: HTTP 200 "success"
+
+    View -> View: confirmDeleteDiscountModal.hide()
+    View -> View: currentRowCount = đếm số <tr>
+    opt currentRowCount == 1 && targetPage > 0
+        View -> View: targetPage = targetPage - 1 (Lùi trang)
+    end
+    View -> View: Gọi changePage(targetPage)
+end
+@enduml

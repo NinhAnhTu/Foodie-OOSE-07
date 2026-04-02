@@ -1,0 +1,25 @@
+@startuml
+title Sequence Diagram - Kiểm soát quyền truy cập
+autonumber
+
+actor "Nhân viên" as User
+boundary "Dashboard" as Page
+participant "AuthInterceptor" as Interceptor
+boundary "login.html" as LoginPage
+
+User -> Page: Truy cập URL protected
+activate Interceptor
+
+Page -> Interceptor: preHandle(request,response)
+
+Interceptor -> Interceptor: session.getAttribute("loggedInUser")
+
+alt Có đăng nhập + đúng role
+    Interceptor --> Page: Allow access
+else Sai quyền / chưa đăng nhập
+    Interceptor -> LoginPage: Redirect /auth/login?error=access_denied
+end
+
+deactivate Interceptor
+
+@enduml

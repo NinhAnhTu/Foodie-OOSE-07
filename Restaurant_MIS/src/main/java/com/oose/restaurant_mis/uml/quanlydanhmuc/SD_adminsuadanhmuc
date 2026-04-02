@@ -1,0 +1,37 @@
+@startuml
+actor Admin
+participant "Browser" as Browser
+participant "CategoryAdminController" as Controller
+participant "CategoryService" as Service
+participant "CategoryRepository" as Repo
+participant "AuditService" as Audit
+
+Admin -> Browser: Click edit icon
+Browser -> Controller: GET /admin/api/categories/edit/{id}
+activate Controller
+Controller -> Service: getById(id)
+Service -> Repo: findById(id)
+Repo --> Service: oldCategory
+Service --> Controller: oldCategory
+deactivate Controller
+Controller --> Browser: JSON (oldCategory)
+Browser -> Browser: Hiển thị modal với dữ liệu cũ
+Admin -> Browser: Sửa tên, trạng thái, Submit
+Browser -> Controller: POST /admin/api/categories/save (form data)
+activate Controller
+Controller -> Service: getById(id) (lấy oldValue)
+Service -> Repo: findById(id)
+Repo --> Service: oldCategory
+Service --> Controller: oldCategory
+Controller -> Service: save(updatedCategory)
+activate Service
+Service -> Repo: save(updatedCategory)
+Repo --> Service: saved
+Service --> Controller: done
+deactivate Service
+Controller -> Audit: log(user, "UPDATE", "Category", id, oldCategory, updatedCategory)
+Audit -> DB: INSERT audit_logs
+Controller --> Browser: ResponseEntity.ok("success")
+deactivate Controller
+Browser -> Browser: Đóng modal, tải lại danh sách
+@enduml

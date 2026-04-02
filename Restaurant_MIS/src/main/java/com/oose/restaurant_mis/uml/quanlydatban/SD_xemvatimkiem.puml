@@ -1,0 +1,26 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "Trình duyệt" as View
+control "ReservationAdminController" as Controller
+participant "ReservationService" as ResService
+participant "DiningTableService" as TableService
+database "Database" as DB
+
+Admin -> View: Mở trang hoặc bấm Tìm kiếm\n(keyword, date, page)
+View -> Controller: GET /admin/api/reservations/content
+
+Controller -> ResService: searchReservations(keyword, date, page, size)
+ResService -> DB: Truy vấn searchReservations(...)
+DB --> ResService: Trả về Page<Reservation>
+ResService --> Controller: Trả về danh sách đơn (Page)
+
+Controller -> TableService: getTablesPage(0, 1000)
+TableService -> DB: Truy vấn findAll()
+DB --> TableService: Trả về danh sách Bàn
+TableService --> Controller: Trả về danh sách Bàn
+
+Controller -> Controller: Đưa dữ liệu vào Model\n(reservationPage, tables, keyword, searchDate)
+Controller --> View: Trả về HTML fragment "admin/reservations :: content"
+View --> Admin: Cập nhật bảng dữ liệu và giữ nguyên bộ lọc
+@enduml

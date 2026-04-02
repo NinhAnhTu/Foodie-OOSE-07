@@ -1,0 +1,38 @@
+@startuml
+autonumber
+actor "Đầu bếp (Chef)" as Chef
+boundary "Kitchen Dashboard\n(index.html)" as View
+control "ChefController" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket (/topic)" as Socket
+
+Chef -> View: Bấm nút cập nhật trạng thái\n(Nấu / Hoàn tất)
+View -> View: Lấy CSRF token từ thẻ meta
+View -> Controller: POST /chef/api/update-status/{detailId}?status=...
+
+Controller -> Service: updateDetailStatus(detailId, status)
+
+Service -> DB: Tìm OrderDetail theo detailId
+DB --> Service: Trả về đối tượng OrderDetail
+
+alt OrderDetail tồn tại
+    Service -> Service: detail.setServedStatus(status)
+    Service -> DB: save(OrderDetail)
+    DB --> Service: Lưu thành công
+    Service --> Controller: Xử lý thành công
+
+    Controller -> Socket: convertAndSend("/topic/tables", "WAITER_UPDATE|...")
+    note right: Báo cho màn hình Waiter cập nhật
+
+    Controller -> Socket: convertAndSend("/topic/order/id", "CUSTOMER_UPDATE")
+    note right: Báo cho điện thoại Khách hàng cập nhật
+
+    Controller --> View: Trả về chuỗi "success"
+    View -> View: Gọi refreshKitchenList()\nTải lại danh sách bếp
+else Không tìm thấy OrderDetail
+    Service --> Controller: Exception / Lỗi
+    Controller --> View: Trả về chuỗi Lỗi
+    View --> Chef: Hiển thị alert("Lỗi: ...")
+end
+@enduml

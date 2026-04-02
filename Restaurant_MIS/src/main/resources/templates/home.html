@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodie - Nhà hàng ẩm thực</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #fffaf5;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: #4a4a4a;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #e67e22;
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 2px;
+            background: #e67e22;
+            border-radius: 2px;
+        }
+
+        .btn-book {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
+        }
+
+        .btn-book:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(230, 126, 34, 0.4);
+            color: white;
+        }
+
+        .hero {
+            min-height: 90vh;
+            background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3)), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero-content {
+            color: white;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero-content h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease 0.2s forwards;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .btn-hero {
+            background: #e67e22;
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            animation: fadeInUp 1s ease 0.4s forwards;
+            opacity: 0;
+            animation-fill-mode: forwards;
+        }
+
+        .btn-hero:hover {
+            background: #d35400;
+            transform: translateY(-3px);
+            color: white;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #e67e22, #f39c12);
+            border-radius: 3px;
+        }
+
+        .menu-item {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .menu-item:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+
+        .menu-img {
+            height: 220px;
+            object-fit: cover;
+            width: 100%;
+        }
+
+        .menu-info {
+            padding: 1.2rem;
+        }
+
+        .menu-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .menu-price {
+            color: #e67e22;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .menu-category {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .about-img {
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .about-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: #666;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+            font-size: 1.3rem;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            color: white;
+            border: none;
+            padding: 1.5rem;
+        }
+
+        .modal-title {
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-control, .form-select {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #e67e22;
+            box-shadow: 0 0 0 0.2rem rgba(230, 126, 34, 0.25);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #e67e22, #f39c12);
+            border: none;
+            padding: 0.75rem;
+            border-radius: 50px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(230, 126, 34, 0.4);
+        }
+
+        .table-option {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .table-option:hover {
+            transform: translateY(-3px);
+        }
+
+        .table-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 0.75rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .table-card.selected {
+            border-color: #e67e22;
+            background: linear-gradient(135deg, #fff5eb, #fff);
+            box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
+        }
+
+        .table-card .table-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+
+        .table-card .table-capacity {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+
+        .table-card .table-location {
+            font-size: 0.7rem;
+            color: #95a5a6;
+            margin-top: 0.25rem;
+        }
+
+        .table-card.selected .table-name {
+            color: #e67e22;
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+
+        #capacityHint {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        #tableSelectedInfo {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+            background: #e8f5e9;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+
+        .footer {
+            background: #1a1a1a;
+            color: #999;
+            padding: 3rem 0 1rem;
+            margin-top: 3rem;
+        }
+
+        .footer h5 {
+            color: white;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .footer a {
+            color: #999;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: #e67e22;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+            .section-title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="/">Foodie</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav mx-auto">
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage} == 'home' ? 'active' : ''" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage} == 'menu' ? 'active' : ''" href="/menu">Menu</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" th:classappend="${activePage} == 'about' ? 'active' : ''" href="/about">About Us</a>
+                </li>
+            </ul>
+            <button class="btn btn-book ms-3" data-bs-toggle="modal" data-bs-target="#bookingModal">
+                <i class="fas fa-calendar-check me-2"></i>Đặt bàn
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div th:switch="${activePage}">
+    <div th:case="'home'">
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Welcome Back to Foodie</h1>
+                    <p>Trải nghiệm ẩm thực tinh tế cùng không gian sang trọng và dịch vụ chuyên nghiệp</p>
+                    <a href="/menu" class="btn-hero">
+                        <i class="fas fa-utensils me-2"></i>Khám phá thực đơn
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-5">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h2 class="section-title">Món ăn đặc sắc</h2>
+                    <p class="text-muted mt-3">Những món ăn được yêu thích nhất tại Foodie</p>
+                </div>
+                <div class="row g-4">
+                    <div th:each="item, iterStat : ${menuItems}" th:if="${iterStat.index} < 6" class="col-md-4 col-lg-4">
+                        <div class="menu-item">
+                            <img th:src="${item.imageUrl != null ? item.imageUrl : 'https://via.placeholder.com/400x220?text=No+Image'}"
+                                 class="menu-img" alt="Menu item">
+                            <div class="menu-info">
+                                <h5 class="menu-name" th:text="${item.name}"></h5>
+                                <p class="menu-price" th:text="'₫' + ${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')}"></p>
+                                <span class="menu-category" th:text="${item.category.name}"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div th:if="${menuItems == null || menuItems.isEmpty()}" class="col-12 text-center py-5">
+                        <i class="fas fa-utensils fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Đang cập nhật thực đơn...</p>
+                    </div>
+                </div>
+                <div th:if="${menuItems != null and !menuItems.isEmpty()}" class="text-center mt-5">
+                    <a href="/menu" class="btn btn-outline-warning rounded-pill px-4 py-2">
+                        Xem tất cả món ăn <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-5 bg-white">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600"
+                             class="img-fluid about-img" alt="About Tastyc">
+                    </div>
+                    <div class="col-lg-6">
+                        <h2 class="section-title text-start">Vì sao chọn Foodie?</h2>
+                        <p class="about-text mt-3">Chúng tôi tự hào mang đến trải nghiệm ẩm thực tuyệt vời nhất với những nguyên liệu tươi ngon và không gian ấm cúng.</p>
+                        <div class="mt-4">
+                            <div class="feature-item">
+                                <div class="feature-icon"><i class="fas fa-check"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Nguyên liệu tươi ngon</h6>
+                                    <p class="small text-muted mb-0">Chọn lọc từ những nguồn cung uy tín</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon"><i class="fas fa-chef-hat"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Đầu bếp chuyên nghiệp</h6>
+                                    <p class="small text-muted mb-0">Kinh nghiệm nhiều năm trong ngành</p>
+                                </div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-icon"><i class="fas fa-leaf"></i></div>
+                                <div>
+                                    <h6 class="fw-bold mb-1">Không gian sang trọng</h6>
+                                    <p class="small text-muted mb-0">Thiết kế hiện đại, ấm cúng</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    <div th:case="'menu'">
+        <section class="hero" style="min-height: 40vh;">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Thực đơn của chúng tôi</h1>
+                    <p>Khám phá hương vị tinh tế qua từng món ăn</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="pt-5 pb-2 bg-white">
+            <div class="container">
+                <form action="/menu" method="get" class="row justify-content-center mb-4">
+                    <input type="hidden" name="categoryId" th:if="${currentCategoryId != null}" th:value="${currentCategoryId}">
+
+                    <div class="col-md-8 col-lg-6">
+                        <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                            <input type="text" name="keyword" th:value="${currentKeyword}" class="form-control border-0 px-4 py-3 shadow-none" placeholder="Bạn muốn ăn gì hôm nay?">
+                            <button type="submit" class="btn btn-warning px-4" style="background: #e67e22; border: none; color: white;">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+                    <a th:href="@{/menu(keyword=${currentKeyword})}"
+                       class="btn rounded-pill px-4 py-2 shadow-sm"
+                       th:classappend="${currentCategoryId == null} ? 'btn-warning text-white' : 'btn-light text-secondary border'"
+                       style="font-weight: 500;"
+                       th:styleappend="${currentCategoryId == null} ? 'background: #e67e22; border: none;' : ''">
+                        Tất cả
+                    </a>
+
+                    <a th:each="cat : ${categories}"
+                       th:href="@{/menu(categoryId=${cat.categoryId}, keyword=${currentKeyword})}"
+                       th:text="${cat.name}"
+                       class="btn rounded-pill px-4 py-2 shadow-sm"
+                       th:classappend="${currentCategoryId == cat.categoryId} ? 'btn-warning text-white' : 'btn-light text-secondary border'"
+                       style="font-weight: 500;"
+                       th:styleappend="${currentCategoryId == cat.categoryId} ? 'background: #e67e22; border: none;' : ''">
+                    </a>
+                </div>
+            </div>
+        </section>
+        <section class="py-4">
+            <div class="container">
+
+                <div th:if="${menuItems.isEmpty()}" class="text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3 opacity-50"></i>
+                    <h5 class="text-muted">Không tìm thấy món ăn nào phù hợp.</h5>
+                    <a href="/menu" class="btn btn-outline-warning rounded-pill mt-3 px-4">Xóa bộ lọc</a>
+                </div>
+
+                <div class="row g-4">
+                    <div th:each="item : ${menuItems}" class="col-md-6 col-lg-4">
+                        <div class="menu-item">
+                            <img th:src="${item.imageUrl != null ? item.imageUrl : 'https://via.placeholder.com/400x220?text=No+Image'}"
+                                 class="menu-img" alt="Menu item">
+                            <div class="menu-info">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="menu-name" th:text="${item.name}"></h5>
+                                        <span class="menu-category" th:text="${item.category.name}"></span>
+                                    </div>
+                                    <span class="menu-price" th:text="'₫' + ${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')}"></span>
+                                </div>
+                                <p class="small text-muted mt-2" th:text="${item.description != null ? item.description : 'Món ăn đặc sắc của nhà hàng'}"></p>
+                                <div class="mt-2">
+                                    <span th:if="${item.isAvailable}" class="badge bg-success px-3 py-1 rounded-pill">Còn hàng</span>
+                                    <span th:unless="${item.isAvailable}" class="badge bg-secondary px-3 py-1 rounded-pill">Tạm hết</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div th:case="'about'">
+        <section class="hero" style="min-height: 40vh;">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>Về chúng tôi</h1>
+                    <p>Câu chuyện của Foodie - Nơi ẩm thực và tâm hồn gặp nhau</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-5">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-lg-6 mb-4 mb-lg-0">
+                        <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600"
+                             class="img-fluid about-img" alt="Restaurant interior">
+                    </div>
+                    <div class="col-lg-6">
+                        <h2 class="section-title text-start">Câu chuyện của chúng tôi</h2>
+                        <p class="about-text mt-3">Foodie được thành lập với niềm đam mê ẩm thực và mong muốn mang đến những trải nghiệm tuyệt vời nhất cho thực khách. Từ những nguyên liệu tươi ngon nhất, qua bàn tay tài hoa của các đầu bếp, chúng tôi tạo nên những món ăn không chỉ ngon mà còn chứa đựng tâm huyết.</p>
+                        <p class="about-text">Với không gian ấm cúng, phong cách phục vụ chuyên nghiệp, Foodie tự hào là điểm đến lý tưởng cho những bữa ăn gia đình, gặp gỡ bạn bè hay tổ chức sự kiện đặc biệt.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="py-5 bg-white">
+            <div class="container">
+                <div class="text-center mb-5">
+                    <h2 class="section-title">Giá trị cốt lõi</h2>
+                </div>
+                <div class="row g-4">
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-heart fa-2x mt-3"></i>
+                        </div>
+                        <h5 class="fw-bold">Đam mê</h5>
+                        <p class="text-muted">Yêu nghề và không ngừng sáng tạo</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-handshake fa-2x mt-3"></i>
+                        </div>
+                        <h5 class="fw-bold">Tận tâm</h5>
+                        <p class="text-muted">Phục vụ khách hàng hết lòng</p>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="feature-icon mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-star fa-2x mt-3"></i>
+                        </div>
+                        <h5 class="fw-bold">Chất lượng</h5>
+                        <p class="text-muted">Cam kết về hương vị và an toàn</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<footer class="footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <h5>Foodie Restaurant</h5>
+                <p>Nơi hội tụ tinh hoa ẩm thực, mang đến những trải nghiệm đáng nhớ cho thực khách.</p>
+                <div class="mt-3">
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <h5>Thông tin liên hệ</h5>
+                <p><i class="fas fa-map-marker-alt me-2"></i> số 01 Võ Văn Ngân, Phường Linh Chiểu, TP. Thủ Đức, TP. Hồ Chí Minh</p>
+                <p><i class="fas fa-phone me-2"></i> 0392286606 </p>
+                <p><i class="fas fa-envelope me-2"></i> ninhanhtu1704@gmail.com</p>
+            </div>
+            <div class="col-md-4 mb-4">
+                <h5>Giờ mở cửa</h5>
+                <p>Thứ 2 - Thứ 6: 10:00 - 22:00</p>
+                <p>Thứ 7 - Chủ nhật: 09:00 - 23:00</p>
+            </div>
+        </div>
+        <hr class="bg-secondary">
+        <div class="text-center pt-3">
+            <p class="small mb-0">© 2026 Foodie Restaurant. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
+
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-calendar-alt me-2"></i>Đặt bàn tại Foodie</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bookingForm" th:action="@{/reservation/submit}" method="post">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" name="customerName" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" name="phone" class="form-control" required pattern="[0-9]{10,11}" placeholder=" ">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                            <input type="email" name="email" class="form-control" required placeholder=" ">
+                            <small class="text-muted">Chúng tôi sẽ gửi email xác nhận qua địa chỉ này.</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Số lượng khách <span class="text-danger">*</span></label>
+                            <input type="number" name="guestCount" id="guestCount" class="form-control" min="1" max="50" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Ngày đặt <span class="text-danger">*</span></label>
+                            <input type="date" name="reservationDate" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Giờ đặt <span class="text-danger">*</span></label>
+                            <input type="time" name="reservationTime" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ghi chú (tùy chọn)</label>
+                        <textarea name="note" class="form-control" rows="2" placeholder="Yêu cầu đặc biệt..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 justify-content-center">
+                    <button type="submit" class="btn btn-submit px-5">
+                        <i class="fas fa-paper-plane me-2"></i>Gửi yêu cầu đặt bàn
+                    </button>
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>
+                <span th:text="${success}"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="errorToast" class="toast align-items-center text-bg-danger border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span th:text="${error}"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function() {
+        var dateInput = document.querySelector('input[name="reservationDate"]');
+        if (dateInput) {
+            var today = new Date().toISOString().split('T')[0];
+            dateInput.min = today;
+        }
+
+        var timeInput = document.querySelector('input[name="reservationTime"]');
+        if (timeInput) {
+            var now = new Date();
+            var currentHour = now.getHours();
+            var currentMinute = now.getMinutes();
+            var minHour = currentHour + 1;
+            if (minHour < 10) minHour = '0' + minHour;
+            var minTime = minHour + ':' + (currentMinute < 10 ? '0' + currentMinute : currentMinute);
+            timeInput.min = minTime;
+        }
+
+        const bookingForm = document.getElementById('bookingForm');
+        if(bookingForm) {
+            bookingForm.addEventListener('submit', function(e) {
+                e.preventDefault(); // Chặn load trang để chống lỗi F5
+
+                const form = this;
+                const formData = new URLSearchParams(new FormData(form));
+
+                // Gửi ngầm dữ liệu
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                })
+                    .then(res => res.text())
+                    .then(data => {
+                        if(data === 'success') {
+                            var toast = new bootstrap.Toast(document.getElementById('successToast'));
+                            document.querySelector('#successToast .toast-body span').innerText = "Gửi yêu cầu đặt bàn thành công! Vui lòng chờ xác nhận.";
+                            toast.show();
+
+                            var modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+                            if (modal) modal.hide();
+                            form.reset();
+                        } else {
+                            var toast = new bootstrap.Toast(document.getElementById('errorToast'));
+                            document.querySelector('#errorToast .toast-body span').innerText = "Lỗi kết nối! Vui lòng thử lại sau.";
+                            toast.show();
+                        }
+                    });
+            });
+        }
+    });
+
+    document.getElementById('bookingModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('bookingForm').reset();
+    });
+</script>
+</body>
+</html>

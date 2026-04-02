@@ -1,0 +1,23 @@
+@startuml
+title Activity Diagram - Quy trình xử lý món ăn của Đầu bếp
+
+start
+:Đầu bếp đăng nhập;
+:Truy cập trang Quản lý bếp;
+:Xem danh sách món đang chờ;
+
+repeat
+  :Chọn món ăn cụ thể;
+  if (Trạng thái hiện tại?) then (PENDING)
+    :Nhấn "Nhận món";
+    :Hệ thống cập nhật thành COOKING;
+  else (COOKING)
+    :Nhấn "Hoàn thành";
+    :Hệ thống cập nhật thành SERVED;
+    :Món ăn ẩn khỏi danh sách bếp;
+  endif
+backward: Quay lại danh sách;
+repeat while (Còn món cần xử lý?) is (Có)
+
+stop
+@enduml

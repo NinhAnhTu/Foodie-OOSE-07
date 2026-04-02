@@ -1,0 +1,62 @@
+@startuml
+start
+:Admin điền Form và bấm "Lưu lại";
+
+note right
+  **Frontend Validation (discounts.html)**
+end note
+
+if (Là Tạo Mới?) then (Đúng)
+  if (Ngày bắt đầu < Hiện tại?) then (Đúng)
+    :Hiển thị Error Modal:\n"Ngày bắt đầu không được trong quá khứ";
+    stop
+  else (Sai)
+  endif
+else (Là Cập Nhật)
+endif
+
+if (Ngày kết thúc <= Ngày bắt đầu?) then (Đúng)
+  :Hiển thị Error Modal:\n"Ngày kết thúc phải lớn hơn ngày bắt đầu";
+  stop
+else (Sai - Hợp lệ ở Frontend)
+  :Dùng Fetch API gửi POST /save;
+endif
+
+note right
+  **Backend Processing (Controller & Service)**
+end note
+
+:Controller kiểm tra Session;
+if (Admin == null?) then (Đúng)
+  :Trả về 401 (Hết phiên);
+  stop
+else (Sai)
+endif
+
+:Controller kiểm tra: endTime < startTime?;
+if (Lỗi ngày tháng?) then (Có)
+  :Trả về 400 (Ngày kết thúc không hợp lệ);
+  stop
+else (Không)
+  :Gọi DiscountService.save(discount, admin);
+
+  if (Là Cập nhật (discountId != null)?) then (Đúng)
+    :Truy xuất dữ liệu cũ (oldValue);
+    :Gắn cờ action = "CẬP NHẬT GIẢM GIÁ";
+  else (Tạo mới)
+    :oldValue = null;
+    :Gắn cờ action = "TẠO MỚI GIẢM GIÁ";
+  endif
+
+  :Lưu dữ liệu vào Database;
+  :Ghi log thông qua AuditService;
+
+  if (Bị trùng Tên chương trình?) then (Có - DataIntegrityViolationException)
+    :Trả về 400 (Tên chương trình đã tồn tại);
+  else (Thành công)
+    :Trả về 200 "success";
+    :Frontend đóng Modal & Tải lại danh sách;
+  endif
+endif
+stop
+@enduml

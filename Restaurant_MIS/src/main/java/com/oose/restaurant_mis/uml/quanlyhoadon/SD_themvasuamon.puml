@@ -1,0 +1,44 @@
+@startuml
+autonumber
+actor "Waiter / Admin" as User
+boundary "Giao diện Gọi món" as View
+control "Controller" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket (/topic)" as Socket
+
+User -> View: Chọn món, số lượng
+View -> Controller: POST /api/orders/add-item
+
+Controller -> Service: addItemToOrder(orderId, itemId, quantity)
+
+Service -> DB: Lấy Order và MenuItem
+Service -> Service: Kiểm tra Order.status == PAID?
+
+alt Đã thanh toán (PAID)
+    Service --> Controller: Exception("Hóa đơn đã thanh toán!")
+    Controller --> View: HTTP 400 (Lỗi)
+else Hợp lệ
+    Service -> DB: Tìm OrderDetail(orderId, itemId)
+
+    alt Đã tồn tại & servedStatus == PENDING
+        Service -> Service: Cộng dồn số lượng (quantity)
+        Service -> Service: Cập nhật / Nối chuỗi Note
+    else Chưa tồn tại HOẶC đã Nấu/Lên món
+        Service -> Service: Khởi tạo OrderDetail mới\n(servedStatus = PENDING)
+    end
+
+    Service -> DB: save(OrderDetail)
+
+    Service -> Service: recalculateTotal(orderId)
+    Service -> DB: save(Order)
+
+    Service --> Controller: void (Thành công)
+
+    Controller -> Socket: convertAndSend("/topic/kitchen", "NEW_ORDER")
+    Controller -> Socket: convertAndSend("/topic/order/id", "WAITER_UPDATE|ADD|...")
+
+    Controller --> View: HTTP 200 "success"
+    View --> User: Cập nhật danh sách món trên màn hình
+end
+@enduml

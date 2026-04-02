@@ -1,0 +1,22 @@
+@startuml
+actor Admin
+participant "TableAdminController" as TAC
+participant "ReservationService" as RS
+participant "ReservationRepository" as RR
+participant "Database" as DB
+
+Admin -> TAC: GET /admin/api/tables/reservation/{tableId}
+activate TAC
+
+TAC -> RS: findActiveReservationByTable(tableId)
+activate RS
+RS -> RR: findTopByTable_TableIdAndStatusOrderByCreatedAtDesc(tableId, CONFIRMED)
+RR -> DB: SELECT * FROM reservations WHERE table_id = ? AND status = 'CONFIRMED' ORDER BY created_at DESC LIMIT 1
+DB --> RR: reservation
+RR --> RS: reservation
+RS --> TAC: reservation
+deactivate RS
+
+TAC --> Admin: Reservation (JSON)
+deactivate TAC
+@enduml

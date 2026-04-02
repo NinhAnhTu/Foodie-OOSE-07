@@ -1,0 +1,19 @@
+@startuml
+title Activity Diagram - Chọn món và gửi bếp
+
+start
+
+repeat
+    :Chọn món ăn;
+    :Thêm vào giỏ hàng;
+    :Điều chỉnh số lượng;
+    :Thêm ghi chú;
+    :Lưu vào Session Cart;
+repeat while (Tiếp tục chọn món?) is (Có)
+
+:Bấm xác nhận gọi món;
+:Hệ thống lưu OrderDetail vào DB;
+:Gửi WebSocket xuống bếp và bill tạm tính của nhân viên;
+
+stop
+@enduml

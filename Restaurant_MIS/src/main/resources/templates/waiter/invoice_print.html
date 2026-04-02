@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: 'Inter', sans-serif; width: 80mm; margin: 0 auto; padding: 10px; color: #333; }
+    .text-center { text-align: center; }
+    .header h2 { margin: 0; color: #000; }
+    .line { border-bottom: 1px dashed #ccc; margin: 10px 0; }
+    table { width: 100%; font-size: 13px; }
+    .total-section td { padding: 3px 0; }
+    .qr-code { margin-top: 15px; }
+    .qr-code img { width: 130px; height: 130px; border: 1px solid #eee; padding: 5px; border-radius: 8px; }
+    @media print { .no-print { display: none; } }
+  </style>
+</head>
+<body>
+<!-- onload="window.print(); window.onafterprint = function(){ window.close(); }"> -->
+<div class="text-center header">
+  <h2>Foodie restaurant</h2>
+  <p style="font-size: 11px;">Số 1 Võ Văn Ngân, Thủ Đức, TP.HCM</p>
+  <p style="font-size: 14px; font-weight: bold;">HÓA ĐƠN THANH TOÁN</p>
+  <p th:text="'#' + ${order.orderId} + ' - ' + ${order.table.tableName}"></p>
+</div>
+
+<div class="line"></div>
+
+<table>
+  <tr th:each="d : ${details}">
+    <td th:text="${d.menuItem.name}"></td>
+    <td class="text-center" th:text="${d.quantity}"></td>
+    <td style="text-align: right;" th:text="${#numbers.formatDecimal(d.unitPrice * d.quantity, 0, 'COMMA', 0, 'POINT') + 'đ'}"></td>
+  </tr>
+</table>
+
+<div class="line"></div>
+
+<table class="total-section">
+  <tr><td>Tạm tính:</td><td style="text-align: right;" th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT') + 'đ'}"></td></tr>
+  <tr th:if="${order.discount != null}">
+    <td th:text="'Giảm giá (' + ${order.discount.name} + '):'"></td>
+    <td style="text-align: right;" th:text="'-' + ${#numbers.formatDecimal(order.totalAmount - order.finalAmount, 0, 'COMMA', 0, 'POINT') + 'đ'}"></td>
+  </tr>
+  <tr style="font-weight: 800; font-size: 16px;">
+    <td>TỔNG CỘNG:</td>
+    <td style="text-align: right;" th:text="${#numbers.formatDecimal(order.finalAmount, 0, 'COMMA', 0, 'POINT') + 'đ'}"></td>
+  </tr>
+</table>
+
+<div class="text-center qr-code">
+  <p style="font-size: 10px; margin-bottom: 5px;">Quét mã để thanh toán Chuyển khoản</p>
+  <img th:src="'https://img.vietqr.io/image/MB-0379453195'+ '-compact.png?amount=' + ${#numbers.formatDecimal(order.finalAmount, 0, 'NONE', 0, 'NONE')} + '&addInfo=Thanh toan don hang ' + ${order.orderId}" alt="QR Payment">
+</div>
+
+<div class="text-center" style="margin-top: 15px; font-size: 11px;">
+  <p>Cảm ơn quý khách!</p>
+  <p th:text="${#temporals.format(T(java.time.LocalDateTime).now(), 'dd/MM/yyyy HH:mm')}"></p>
+</div>
+</body>
+</html>

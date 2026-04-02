@@ -1,0 +1,60 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' ================== DEFINE ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(Discount) {
+  - discountId: Integer
+  - name: String
+  - discountPercent: Integer
+  - startTime: LocalDateTime
+  - endTime: LocalDateTime
+  - isActive: Boolean
+  + isValidTime(): boolean
+}
+
+' ================== CONTROLLER ==================
+controller(DiscountAdminController) {
+  + getContent(page, size, keyword, startDate, endDate, isActive, Model): String
+  + save(discount, HttpSession): ResponseEntity<?>
+  + delete(id, HttpSession): ResponseEntity<?>
+  + edit(id): Discount
+}
+
+' ================== SERVICE ==================
+service(DiscountService) {
+  + getDiscountsPage(page, size): Page<Discount>
+  + searchDiscounts(keyword, startDate, endDate, isActive, page, size): Page<Discount>
+  + getById(id): Discount
+  + save(discount, admin): void
+  + delete(id, admin): void
+}
+
+service(AuditService) {
+  + log(user, action, tableName, recordId, oldValue, newValue): void
+}
+
+' ================== REPOSITORY ==================
+repository(DiscountRepository) {
+  + findValidDiscounts(now): List<Discount>
+  + findByIsActiveTrue(): List<Discount>
+  + searchDiscounts(keyword, startDate, endDate, isActive, Pageable): Page<Discount>
+}
+
+' ================== RELATION ==================
+' Controller -> Service (Nét liền vì @Autowired)
+DiscountAdminController --> DiscountService
+
+' Service -> Repository & Audit (Nét liền vì @Autowired)
+DiscountService --> DiscountRepository
+DiscountService --> AuditService
+
+' Repository -> Entity (Nét đứt vì chỉ thao tác dữ liệu)
+DiscountRepository ..> Discount
+
+@enduml

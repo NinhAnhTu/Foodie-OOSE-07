@@ -1,0 +1,33 @@
+@startuml
+start
+:Admin chọn bàn trên giao diện và bấm "Duyệt";
+:Gửi Request POST với **reservationId** và **tableId**;
+
+:Hệ thống truy xuất Reservation (từ Database);
+:Hệ thống truy xuất DiningTable (từ Database);
+
+if (table.getStatus() != EMPTY?) then (Đúng - Bàn không trống)
+  :Trả về lỗi HTTP 400: \n"Bàn này vừa được gán/mở...";
+  stop
+else (Sai - Bàn hợp lệ)
+  :Gán DiningTable vào Reservation;
+  :Cập nhật Reservation.status = CONFIRMED;
+  :Gọi ReservationService.save();
+
+  :Cập nhật DiningTable.status = RESERVED;
+  :Gọi DiningTableService.save();
+
+  if (Reservation có chứa Email?) then (Có)
+    :Format lại thời gian đặt bàn;
+    :Gọi EmailService gửi mail xác nhận;
+  else (Không có Email)
+  endif
+
+  :Gửi tín hiệu WebSocket: "UPDATE_TABLE_MAP";
+  :Gửi tín hiệu WebSocket: "RESERVATION_CONFIRMED|Tên Bàn";
+
+  :Trả về "success" (HTTP 200);
+  :Giao diện tải lại danh sách/bản đồ bàn;
+endif
+stop
+@enduml

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hóa Đơn Của Bạn - Tastyc</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Inter', sans-serif; padding-top: 65px; padding-bottom: 90px; }
+        .top-header { position: fixed; top: 0; left: 0; right: 0; background: #fff; z-index: 1030; box-shadow: 0 2px 15px rgba(0,0,0,0.04); height: 65px; display: flex; align-items: center; padding: 0 20px; }
+        .back-btn { color: #1e293b; font-size: 1.3rem; text-decoration: none; margin-right: 15px; }
+        .page-title { font-weight: 800; font-size: 1.2rem; margin: 0; color: #1e293b; }
+        .bill-card { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.03); margin-bottom: 15px; }
+        .item-row { border-bottom: 1px dashed #e2e8f0; padding: 15px 0; }
+        .item-row:last-child { border-bottom: none; }
+        .bottom-checkout { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 20px; box-shadow: 0 -5px 25px rgba(0,0,0,0.08); z-index: 1030; border-radius: 24px 24px 0 0; }
+        .btn-checkout { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 15px; border-radius: 14px; font-weight: 800; width: 100%; font-size: 1.1rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .status-pending { background-color: #f1f5f9; color: #64748b; }
+        .status-cooking { background-color: #e0f2fe; color: #0284c7; }
+        .status-served { background-color: #dcfce7; color: #16a34a; }
+    </style>
+</head>
+<body>
+
+<header class="top-header">
+    <a href="/table/menu" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+    <h1 class="page-title">Chi tiết hóa đơn #<span th:text="${order.orderId}"></span></h1>
+</header>
+
+<div class="container-fluid px-3 pt-4">
+    <div class="bill-card">
+        <h5 class="fw-bold mb-3"><i class="fas fa-receipt me-2 text-muted"></i>Danh sách đã gọi</h5>
+
+        <div th:if="${orderDetails.isEmpty()}" class="text-center text-muted py-4">
+            <i class="fas fa-folder-open fa-3x mb-3 text-light"></i>
+            <p>Bạn chưa gọi món nào.</p>
+        </div>
+
+        <div th:each="detail : ${orderDetails}" class="item-row d-flex justify-content-between align-items-center">
+            <div style="flex: 1; padding-right: 15px;">
+                <div class="fw-bold text-dark fs-6" th:text="${detail.menuItem.name}">Tên món</div>
+                <div class="small text-muted mt-1" th:text="${#numbers.formatDecimal(detail.unitPrice, 0, 'COMMA', 0, 'POINT')} + 'đ x ' + ${detail.quantity}">Giá x SL</div>
+                <div th:if="${detail.note}" class="small text-warning italic mt-1" th:text="'📝: ' + ${detail.note}"></div>
+            </div>
+            <div class="text-end">
+                <div class="fw-bold text-dark mb-2" th:text="${#numbers.formatDecimal(detail.unitPrice * detail.quantity, 0, 'COMMA', 0, 'POINT')} + 'đ'">Tổng</div>
+
+                <span class="badge rounded-pill px-3 py-2"
+                      th:classappend="${detail.servedStatus.name() == 'PENDING' ? 'status-pending' :
+                                       (detail.servedStatus.name() == 'COOKING' ? 'status-cooking' : 'status-served')}"
+                      th:text="${detail.servedStatus.name() == 'PENDING' ? 'Chờ xác nhận' :
+                                (detail.servedStatus.name() == 'COOKING' ? 'Đang nấu' : 'Hoàn tất')}">
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-checkout">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted fw-bold">Tổng thanh toán:</span>
+        <span class="fs-4 fw-800 text-dark fw-bold" th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+    </div>
+
+    <button th:if="${order.status.name() == 'OPEN' and allServed}" class="btn-checkout" onclick="requestCheckout()">
+        <i class="fas fa-bell me-2"></i> YÊU CẦU THANH TOÁN
+    </button>
+
+    <button th:if="${order.status.name() == 'OPEN' and !allServed}" class="btn-checkout bg-secondary shadow-none"
+            onclick="showCustomerNotice('Chưa thể thanh toán', 'Vui lòng đợi tất cả các món được phục vụ (Hoàn tất) trước khi tính tiền.', false)">
+        <i class="fas fa-bell me-2"></i> YÊU CẦU THANH TOÁN
+    </button>
+
+    <button th:if="${order.status.name() != 'OPEN'}" class="btn-checkout bg-secondary shadow-none" disabled>
+        <i class="fas fa-check-circle me-2"></i> ĐÃ YÊU CẦU THANH TOÁN
+    </button>
+</div>
+
+<div class="modal fade" id="customerActionModal" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+            <div class="mb-3"><i id="customerModalIcon" class="fas fa-question-circle text-primary" style="font-size: 3.5rem;"></i></div>
+            <h5 class="fw-bold" id="customerModalTitle">Tiêu đề</h5>
+            <div class="text-muted small" id="customerModalMsg" style="word-wrap: break-word;">Nội dung</div>
+            <div class="d-flex gap-2 w-100 mt-3" id="customerModalButtons"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const orderId = /*[[${order.orderId}]]*/ 0;
+    var actionModal = new bootstrap.Modal(document.getElementById('customerActionModal'));
+
+    let pendingUpdates = [];
+    let updateTimer = null;
+    let isModalOpen = false;
+
+    // Tự động load lại trang hóa đơn nếu khách chủ động tắt thông báo
+    document.getElementById('customerActionModal').addEventListener('hidden.bs.modal', function () {
+        isModalOpen = false;
+        location.reload();
+    });
+
+    function showCustomerConfirm(title, msg, callback) {
+        document.getElementById('customerModalIcon').className = "fas fa-bell text-warning";
+        document.getElementById('customerModalTitle').innerText = title;
+        document.getElementById('customerModalMsg').innerText = msg;
+
+        // Chèn ID cho nút bấm để dễ dàng bắt sự kiện
+        document.getElementById('customerModalButtons').innerHTML =
+            '<button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">HỦY</button>' +
+            '<button type="button" id="btnConfirmAction" class="btn btn-warning text-dark w-50 rounded-pill fw-bold">GỌI</button>';
+
+        // Gắn sự kiện click an toàn (chống dính nút)
+        document.getElementById('btnConfirmAction').onclick = function() {
+            this.disabled = true; // Khóa nút ngay lập tức
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chờ...'; // Hiện hiệu ứng đang load
+            callback(); // Gọi hàm xử lý phía dưới
+        };
+
+        actionModal.show();
+        isModalOpen = true;
+    }
+
+    function showCustomerNotice(title, msg, isSuccess) {
+        document.getElementById('customerModalIcon').className = isSuccess ? "fas fa-check-circle text-success" : "fas fa-exclamation-triangle text-danger";
+        document.getElementById('customerModalTitle').innerText = title;
+        document.getElementById('customerModalMsg').innerText = msg;
+        let btnClass = isSuccess ? 'btn-success' : 'btn-dark';
+        document.getElementById('customerModalButtons').innerHTML =
+            '<button type="button" class="btn ' + btnClass + ' w-100 rounded-pill fw-bold" onclick="location.reload()"><i class="fas fa-sync-alt me-2"></i> Làm Mới Trang</button>';
+        actionModal.show();
+        isModalOpen = true;
+    }
+
+    function showCustomerNoticeHTML(title, htmlMsg, isSuccess, callbackStr) {
+        document.getElementById('customerModalIcon').className = isSuccess ? "fas fa-info-circle text-primary" : "fas fa-exclamation-triangle text-danger";
+        document.getElementById('customerModalTitle').innerText = title;
+        document.getElementById('customerModalMsg').innerHTML = htmlMsg;
+        let btnClass = isSuccess ? 'btn-primary' : 'btn-dark';
+        document.getElementById('customerModalButtons').innerHTML =
+            '<button type="button" class="btn ' + btnClass + ' w-100 rounded-pill fw-bold" onclick="' + callbackStr + '"><i class="fas fa-check me-2"></i> ĐÃ HIỂU</button>';
+        actionModal.show();
+        isModalOpen = true;
+    }
+
+    function closeNoticeAndReload() {
+        actionModal.hide();
+        // Load lại trang đã được gắn tự động vào sự kiện tắt hộp thoại ở trên
+    }
+
+    function connectSocket() {
+        const socket = new SockJS('/ws-resto');
+        const stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+
+        stompClient.connect({}, function (frame) {
+            stompClient.subscribe('/topic/order/' + orderId, function (message) {
+                if (message.body === "PAID_SUCCESS") {
+                    showCustomerNotice("Thanh toán thành công", "Cảm ơn quý khách! Hóa đơn đã được thanh toán.", true);
+                    setTimeout(() => window.location.href = '/table/login', 3000);
+                }
+                else if (message.body === "ITEM_STATUS_UPDATED" || message.body === "CUSTOMER_UPDATE") {
+                    if (!updateTimer && !isModalOpen) {
+                        location.reload();
+                    }
+                }
+                else if (message.body.startsWith("WAITER_UPDATE|")) {
+                    let parts = message.body.split("|");
+                    let actionText = parts[1] === "ADD" ? "Thêm" : "Hủy";
+                    let itemName = parts[2];
+                    let iconClass = parts[1] === "ADD" ? "fa-plus-circle text-success" : "fa-minus-circle text-danger";
+
+                    let newRowHtml =
+                        '<div class="d-flex align-items-center mb-2 text-dark" style="font-size: 0.95rem;">' +
+                        '<i class="fas ' + iconClass + ' me-2 fs-5"></i>' +
+                        '<span>' + actionText + ': <strong>' + itemName + '</strong></span>' +
+                        '</div>';
+
+                    if (isModalOpen) {
+                        let listContainer = document.getElementById('customerUpdateList');
+                        if (listContainer) {
+                            listContainer.insertAdjacentHTML('beforeend', newRowHtml);
+                        } else {
+                            // Nếu đang bật hộp thoại khác (vd: Xác nhận tính tiền), dẹp nó đi và bung hộp thoại này lên
+                            actionModal.hide();
+                            setTimeout(() => {
+                                let htmlList = '<div id="customerUpdateList" class="text-start mt-3 p-3 bg-light rounded-3 border" style="max-height: 250px; overflow-y: auto;">' +
+                                    newRowHtml +
+                                    '</div>';
+                                showCustomerNoticeHTML("Cập nhật hóa đơn", "Nhân viên vừa thay đổi thực đơn của bạn:" + htmlList, true, "closeNoticeAndReload()");
+                            }, 400);
+                        }
+                    } else {
+                        pendingUpdates.push(newRowHtml);
+
+                        if (updateTimer) clearTimeout(updateTimer);
+
+                        updateTimer = setTimeout(() => {
+                            let htmlList = '<div id="customerUpdateList" class="text-start mt-3 p-3 bg-light rounded-3 border" style="max-height: 250px; overflow-y: auto;">' +
+                                pendingUpdates.join('') +
+                                '</div>';
+
+                            showCustomerNoticeHTML("Cập nhật hóa đơn", "Nhân viên vừa thay đổi thực đơn của bạn:" + htmlList, true, "closeNoticeAndReload()");
+
+                            pendingUpdates = [];
+                            updateTimer = null;
+                        }, 500);
+                    }
+                }
+            });
+        });
+    }
+
+    function requestCheckout() {
+        showCustomerConfirm("Xác nhận", "Gọi nhân viên ra tính tiền cho bàn của bạn?", executeCheckout);
+    }
+
+    function executeCheckout() {
+        fetch('/table/api/checkout', {method: 'POST'})
+            .then(res => res.text())
+            .then(data => {
+                // Thêm độ trễ 400ms để đảm bảo người dùng đã nhấc ngón tay khỏi màn hình
+                setTimeout(() => {
+                    if(data === 'success') {
+                        showCustomerNotice("Thành công", "Đã gửi yêu cầu thanh toán!", true);
+                    } else {
+                        // Gọi lại logic ở yêu cầu trước: Lỗi thì hiện chữ ĐÃ HIỂU và chỉ ẩn popup
+                        showCustomerNotice("Không thể thanh toán", data, false, "ĐÃ HIỂU", "window.actionModal.hide()");
+                    }
+                }, 400);
+            })
+            .catch(err => {
+                setTimeout(() => {
+                    showCustomerNotice("Lỗi", "Mất kết nối với máy chủ!", false, "ĐÃ HIỂU", "window.actionModal.hide()");
+                }, 400);
+            });
+    }
+
+    document.addEventListener('DOMContentLoaded', connectSocket);
+</script>
+</body>
+</html>

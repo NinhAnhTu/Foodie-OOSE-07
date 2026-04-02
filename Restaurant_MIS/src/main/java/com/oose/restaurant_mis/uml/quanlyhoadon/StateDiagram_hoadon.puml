@@ -1,0 +1,31 @@
+@startuml
+skinparam state {
+  BackgroundColor LightYellow
+  BorderColor Orange
+  ArrowColor DarkOrange
+}
+
+hide empty description
+
+state "OPEN\n(Đang phục vụ)" as OPEN
+state "PENDING_PAYMENT\n(Chờ thanh toán)" as PENDING_PAYMENT
+state "PAID\n(Đã thanh toán)" as PAID
+state "CANCELLED\n(Đã hủy)" as CANCELLED
+
+[*] --> OPEN : Waiter/Admin Mở bàn\n[Tạo Hóa đơn mới]
+
+OPEN --> PENDING_PAYMENT : Customer bấm "Gọi tính tiền"\n[Điều kiện: Tất cả món phải SERVED]
+OPEN --> PAID : Waiter/Admin chủ động Tính tiền\n[Điều kiện: Tất cả món phải SERVED]
+OPEN --> CANCELLED : Waiter/Admin Hủy hóa đơn\n[Điều kiện: Bàn chưa gọi món nào]
+
+PENDING_PAYMENT --> PAID : Waiter/Admin xác nhận Thanh toán\n[Áp dụng Giảm giá & Đóng bàn]
+PENDING_PAYMENT --> OPEN : Khách hàng gọi thêm món\n[Hóa đơn quay lại trạng thái mở]
+
+PAID --> [*] : Kết thúc vòng đời\n[Bàn chuyển thành EMPTY]
+CANCELLED --> [*] : Kết thúc vòng đời\n[Bàn chuyển thành EMPTY]
+
+note right of OPEN
+  Hóa đơn chỉ có thể bị Hủy (CANCELLED)
+  khi bên trong chưa có OrderDetail nào.
+end note
+@enduml

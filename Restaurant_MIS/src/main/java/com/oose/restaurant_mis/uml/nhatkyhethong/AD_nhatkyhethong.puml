@@ -1,0 +1,24 @@
+@startuml
+title Activity Diagram - Quy trình ghi Nhật ký hệ thống (Audit Logging Process)
+
+start
+:Người dùng thực hiện hành động;
+:Business Service tiếp nhận yêu cầu;
+
+if (Hành động có cần ghi log không?) then (Có)
+  :Thu thập thông tin User hiện tại;
+  :Lấy dữ liệu trước khi thay đổi (Old Object);
+  :Thực hiện thay đổi trong Database;
+  :Lấy dữ liệu sau khi thay đổi (New Object);
+
+    :Chuyển đổi Old/New Object sang JSON String;
+    :Khởi tạo đối tượng AuditLog mới;
+    :Lưu AuditLog vào bảng audit_logs;
+
+else (Không)
+  :Thực hiện thay đổi trong Database;
+endif
+
+:Hoàn thành hành động & Phản hồi;
+stop
+@enduml

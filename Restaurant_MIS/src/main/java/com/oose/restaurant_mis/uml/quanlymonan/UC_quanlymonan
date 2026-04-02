@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+actor "Quản lý (Admin)" as Admin
+
+rectangle "Quản lý món ăn" {
+  usecase "Xem danh sách món ăn\n(phân trang, lọc theo loại, tìm kiếm)" as UC_ListDish
+  usecase "Thêm món ăn mới (có ảnh)" as UC_CreateDish
+  usecase "Sửa món ăn" as UC_UpdateDish
+  usecase "Xóa món ăn" as UC_DeleteDish
+  usecase "Tìm kiếm món ăn theo tên" as UC_SearchDish
+  usecase "Lọc món ăn theo danh mục" as UC_FilterByCat
+  usecase "Bật/tắt trạng thái bán hàng" as UC_ToggleAvailable
+  usecase "Upload ảnh món ăn" as UC_UploadImage
+}
+
+Admin --> UC_ListDish
+Admin --> UC_CreateDish
+Admin --> UC_UpdateDish
+Admin --> UC_DeleteDish
+Admin --> UC_SearchDish
+Admin --> UC_FilterByCat
+Admin --> UC_ToggleAvailable
+Admin --> UC_UploadImage
+@enduml

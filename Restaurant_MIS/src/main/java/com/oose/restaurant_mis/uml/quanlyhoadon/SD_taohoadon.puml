@@ -1,0 +1,44 @@
+@startuml
+autonumber
+actor "Admin / Waiter" as User
+boundary "Giao diện (Sơ đồ bàn)" as View
+control "Controller \n(Order/Waiter Controller)" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket \n(/topic/tables)" as Socket
+
+User -> View: Chọn bàn trống và bấm "Mở bàn"
+View -> Controller: POST /api/orders/create-from-table?tableId=...
+
+Controller -> Service: createOrderFromTable(tableId)
+
+Service -> DB: Tìm DiningTable theo tableId
+DB --> Service: Trả về đối tượng DiningTable
+
+Service -> DB: Tìm Reservation (CONFIRMED) của tableId này
+
+alt Có khách Đặt bàn trước
+    DB --> Service: Trả về đối tượng Reservation
+    Service -> Service: Lấy customerName từ Reservation
+    Service -> Service: Cập nhật Reservation.status = DONE
+    Service -> DB: save(Reservation)
+else Là khách vãng lai
+    DB --> Service: Trả về null
+    Service -> Service: customerName = null
+end
+
+Service -> Service: Khởi tạo Order mới (status=OPEN, total=0)
+Service -> DB: save(Order)
+DB --> Service: Trả về Order đã lưu
+
+Service -> Service: Cập nhật table.status = OCCUPIED
+Service -> DB: save(DiningTable)
+DB --> Service: Hoàn tất cập nhật Bàn
+
+Service --> Controller: Xử lý thành công
+
+Controller -> Socket: convertAndSend("UPDATE_TABLE_MAP")
+note right: Thông báo cho tất cả thiết bị\ncập nhật lại màu sắc bàn
+Controller --> View: HTTP 200 "success"
+View --> User: Đóng Modal & Đổi màu bàn sang "Có khách"
+@enduml

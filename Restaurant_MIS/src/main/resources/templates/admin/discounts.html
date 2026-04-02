@@ -1,0 +1,339 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Chương trình giảm giá</h3>
+            <p class="text-muted small mb-0">Quản lý các chiến dịch ưu đãi</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button class="btn btn-light shadow-sm rounded-pill px-3 border ms-1" onclick="refreshPage()" title="Làm mới">
+                <i class="fas fa-sync-alt text-secondary"></i>
+            </button>
+            <select id="filterActive" class="form-select rounded-pill shadow-sm border" style="width: 140px;" onchange="searchDiscount()">
+                <option value="">Tất cả</option>
+                <option value="true" th:selected="${isActive != null and isActive == true}">Đang chạy</option>
+                <option value="false" th:selected="${isActive != null and isActive == false}">Đã tắt</option>
+            </select>
+
+            <div class="d-flex align-items-center bg-white rounded-pill shadow-sm border px-2">
+                <input type="date" id="filterStart" class="form-control form-control-sm border-0 shadow-none bg-transparent" th:value="${startDate}" title="Từ ngày">
+                <span class="text-muted mx-1">-</span>
+                <input type="date" id="filterEnd" class="form-control form-control-sm border-0 shadow-none bg-transparent" th:value="${endDate}" title="Đến ngày">
+            </div>
+
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 220px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchDiscountInput" class="form-control border-0 shadow-none bg-white" placeholder="Tên CT..." th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchDiscount()">Tìm</button>
+            </div>
+
+            <button class="btn btn-primary rounded-pill px-4 text-nowrap shadow-sm ms-2" onclick="openDiscountModal()">
+                <i class="fas fa-plus me-2"></i> Tạo mới
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Tên chương trình</th>
+                    <th>% Giảm</th>
+                    <th>Thời gian áp dụng</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="d : ${discountPage.content}">
+                    <td class="ps-4">
+                        <span class="fw-bold text-dark" th:text="${d.name}"></span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary px-3" th:text="${d.discountPercent + '%'}"></span>
+                    </td>
+                    <td class="small">
+                        <div><i class="far fa-clock me-1 text-success"></i> Từ: <span th:text="${#temporals.format(d.startTime, 'dd/MM/yyyy HH:mm')}"></span></div>
+                        <div><i class="far fa-clock me-1 text-danger"></i> Đến: <span th:text="${#temporals.format(d.endTime, 'dd/MM/yyyy HH:mm')}"></span></div>
+                    </td>
+                    <td>
+             <span th:class="${d.isActive ? 'badge rounded-pill bg-success-subtle text-success px-3' : 'badge rounded-pill bg-secondary-subtle text-secondary px-3'}"
+                   th:text="${d.isActive ? 'Đang chạy' : 'Đã tắt'}"></span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-light border text-primary me-1" th:onclick="'editDiscount(' + ${d.discountId} + ')'"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-light border text-danger" th:onclick="'deleteDiscount(' + ${d.discountId} + ')'"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+                <tr th:if="${discountPage.totalElements == 0}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">Không tìm thấy mã giảm giá nào phù hợp.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${discountPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, discountPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == discountPage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="discountModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <form id="discountForm">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title fw-bold" id="modalTitle">Thông tin giảm giá</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body px-4">
+                        <input type="hidden" name="discountId" id="discId">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Tên chương trình</label>
+                            <input type="text" name="name" id="discName" class="form-control bg-light border-0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Phần trăm giảm (%)</label>
+                            <input type="number" name="discountPercent" id="discPercent" class="form-control bg-light border-0" min="0" max="100" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Ngày bắt đầu</label>
+                                <input type="datetime-local" name="startTime" id="discStart" class="form-control bg-light border-0" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Ngày kết thúc</label>
+                                <input type="datetime-local" name="endTime" id="discEnd" class="form-control bg-light border-0" required>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch mt-3">
+                            <input class="form-check-input" type="checkbox" name="isActive" id="discActive" checked>
+                            <label class="form-check-label ms-2">Kích hoạt chương trình</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pb-4 justify-content-center">
+                        <button type="submit" class="btn btn-primary px-5 fw-bold">Lưu lại</button>
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteDiscountModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-trash-alt text-danger" style="font-size: 3.5rem;"></i></div>
+                <h5 class="fw-bold text-dark">Xác nhận xóa</h5>
+                <p class="text-muted small mb-0">Bạn có chắc chắn muốn xóa mã giảm giá này không?</p>
+                <div class="d-flex gap-2 w-100 mt-4">
+                    <button type="button" id="btnConfirmDeleteDiscount" class="btn btn-danger w-50 rounded-pill fw-bold">OK</button>
+                    <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">HỦY</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="errorModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-exclamation-circle text-warning" style="font-size: 3.5rem;"></i></div>
+                <h5 class="fw-bold text-dark">Thông báo</h5>
+                <p class="text-muted small mb-0" id="errorModalMsg">Đã xảy ra lỗi!</p>
+                <div class="mt-4">
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill fw-bold" data-bs-dismiss="modal">ĐÓNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #3b82f6 !important; border-color: #3b82f6 !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        // Khai báo bằng 'var' giống hệt categories.html để chống lỗi Identifier SPA
+        var discModal = new bootstrap.Modal(document.getElementById('discountModal'));
+        var confirmDeleteDiscountModal = new bootstrap.Modal(document.getElementById('confirmDeleteDiscountModal'));
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal')); // Khởi tạo Error Modal
+
+        function changePage(page) {
+            const keyword = document.getElementById('searchDiscountInput').value.trim();
+            const startDate = document.getElementById('filterStart').value;
+            const endDate = document.getElementById('filterEnd').value;
+            const isActive = document.getElementById('filterActive').value;
+
+            let url = `/admin/api/discounts/content?page=${page}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (startDate) url += `&startDate=${startDate}`;
+            if (endDate) url += `&endDate=${endDate}`;
+            if (isActive !== "") url += `&isActive=${isActive}`;
+
+            loadModule('/admin/discounts', url, null);
+        }
+
+        function searchDiscount() { changePage(0); }
+
+        // Hàm Làm mới trang (Xóa hết bộ lọc, về trang 0)
+        function refreshPage() {
+            document.getElementById('searchDiscountInput').value = '';
+            document.getElementById('filterStart').value = '';
+            document.getElementById('filterEnd').value = '';
+            document.getElementById('filterActive').value = '';
+            changePage(0);
+        }
+
+        document.getElementById('searchDiscountInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchDiscount();
+        });
+
+        function openDiscountModal() {
+            document.getElementById('discountForm').reset();
+            document.getElementById('discId').value = '';
+            document.getElementById('discName').value = '';
+            document.getElementById('discPercent').value = '';
+
+            // Lấy ngày giờ hiện tại format chuẩn YYYY-MM-DDThh:mm
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            const currentDateTime = now.toISOString().slice(0, 16);
+
+            // Set giá trị mặc định và chặn chọn ngày quá khứ cho ô Bắt đầu
+            const startInput = document.getElementById('discStart');
+            startInput.value = currentDateTime;
+            startInput.min = currentDateTime; // Không cho phép chọn thời gian trước hiện tại
+
+            document.getElementById('discEnd').value = '';
+            document.getElementById('discEnd').min = currentDateTime; // End date cũng không được là quá khứ
+
+            document.getElementById('discActive').checked = true;
+            document.getElementById('modalTitle').innerText = 'Tạo giảm giá mới';
+            discModal.show();
+        }
+
+        function formatDateTimeForInput(val) {
+            if (!val) return '';
+            if (Array.isArray(val)) {
+                const pad = n => n.toString().padStart(2, '0');
+                return `${val[0]}-${pad(val[1])}-${pad(val[2])}T${pad(val[3])}:${pad(val[4] || 0)}`;
+            }
+            return val.toString().substring(0, 16);
+        }
+
+        function editDiscount(id) {
+            fetch('/admin/api/discounts/edit/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('discId').value = data.discountId || data.id || '';
+                    document.getElementById('discName').value = data.name;
+                    document.getElementById('discPercent').value = data.discountPercent;
+
+                    const startInput = document.getElementById('discStart');
+                    const endInput = document.getElementById('discEnd');
+
+                    // XÓA RÀNG BUỘC CHẶN NGÀY QUÁ KHỨ KHI MỞ FORM SỬA
+                    startInput.removeAttribute('min');
+                    endInput.removeAttribute('min');
+
+                    startInput.value = formatDateTimeForInput(data.startTime);
+                    endInput.value = formatDateTimeForInput(data.endTime);
+                    document.getElementById('discActive').checked = data.isActive;
+
+                    document.getElementById('modalTitle').innerText = 'Cập nhật giảm giá';
+                    discModal.show();
+                });
+        }
+
+        document.getElementById('discountForm').onsubmit = function(e) {
+            e.preventDefault();
+
+            const isNew = !document.getElementById('discId').value;
+            const startVal = document.getElementById('discStart').value;
+            const endVal = document.getElementById('discEnd').value;
+
+            if (startVal && endVal) {
+                const startDate = new Date(startVal);
+                const endDate = new Date(endVal);
+
+                // CHỈ KIỂM TRA NGÀY QUÁ KHỨ KHI TẠO MỚI
+                if (isNew) {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - 2); // Trừ hao 2 phút thao tác
+                    if (startDate < now) {
+                        document.getElementById('errorModalMsg').innerText = "Ngày bắt đầu không được nằm trong quá khứ!";
+                        errorModal.show();
+                        return;
+                    }
+                }
+
+                // LUÔN KIỂM TRA: Kết thúc phải sau Bắt đầu
+                if (endDate <= startDate) {
+                    document.getElementById('errorModalMsg').innerText = "Ngày kết thúc phải lớn hơn ngày bắt đầu!";
+                    errorModal.show();
+                    return;
+                }
+            }
+
+            const formData = new FormData(this);
+            formData.set('isActive', document.getElementById('discActive').checked);
+
+            fetch('/admin/api/discounts/save', {
+                method: 'POST',
+                body: formData
+            }).then(async res => {
+                if(res.ok) {
+                    discModal.hide();
+                    changePage(/*[[${currentPage != null ? currentPage : 0}]]*/ 0);
+                } else {
+                    const errorMessage = await res.text();
+                    document.getElementById('errorModalMsg').innerText = errorMessage;
+                    errorModal.show();
+                }
+            }).catch(err => {
+                document.getElementById('errorModalMsg').innerText = "Không thể kết nối đến máy chủ!";
+                errorModal.show();
+            });
+        };
+
+        // GOM LOGIC XÓA VÀ LÙI TRANG VÀO 1 HÀM GIỐNG CATEGORIES
+        function deleteDiscount(id) {
+            confirmDeleteDiscountModal.show();
+
+            document.getElementById('btnConfirmDeleteDiscount').onclick = function() {
+                fetch('/admin/api/discounts/delete/' + id, { method: 'DELETE' })
+                    .then(async res => {
+                        if(res.ok) {
+                            confirmDeleteDiscountModal.hide();
+
+                            // Xử lý lùi trang
+                            let currentRowCount = document.querySelectorAll('tbody tr').length;
+                            let targetPage = /*[[${currentPage != null ? currentPage : 0}]]*/ 0;
+                            if (currentRowCount === 1 && targetPage > 0) {
+                                targetPage--;
+                            }
+                            changePage(targetPage);
+                        } else {
+                            const errorMessage = await res.text();
+                            confirmDeleteDiscountModal.hide();
+                            document.getElementById('errorModalMsg').innerText = errorMessage;
+                            errorModal.show();
+                        }
+                    });
+            };
+        }
+    </script>
+</div>

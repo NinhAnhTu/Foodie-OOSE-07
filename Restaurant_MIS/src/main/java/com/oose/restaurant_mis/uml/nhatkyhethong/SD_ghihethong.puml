@@ -1,0 +1,34 @@
+@startuml
+title Sequence Diagram - Quy trình ghi Nhật ký hệ thống (Audit Logging)
+
+actor "Người dùng" as User
+participant "BusinessService" as Service
+participant "AuditService" as Audit
+database "Database" as DB
+participant "ObjectMapper (Jackson)" as JSON
+
+User -> Service : Thực hiện hành động (CRUD, add order, payment, ...)
+activate Service
+
+Service -> DB : Lấy dữ liệu cũ (Old Object)
+DB --> Service : Old Object
+
+Service -> DB : Lưu dữ liệu mới (Update Record)
+DB --> Service : Success
+
+Service -> Audit : log(User, Action, Table, RecordId, OldObj, NewObj)
+activate Audit
+
+Audit -> JSON : writeValueAsString(OldObj)
+JSON --> Audit : OldValue (JSON String)
+
+Audit -> JSON : writeValueAsString(NewObj)
+JSON --> Audit : NewValue (JSON String)
+
+Audit -> DB : INSERT INTO audit_logs (...)
+DB --> Audit : Success
+deactivate Audit
+
+Service --> User : Hoàn thành & Redirect
+deactivate Service
+@enduml

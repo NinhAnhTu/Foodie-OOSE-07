@@ -1,0 +1,40 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "Trình duyệt (reservations.html)" as View
+control "ReservationAdminController" as Controller
+participant "ReservationService" as Service
+participant "DiningTableService" as TableService
+database "Database (ReservationRepository)" as DB
+
+Admin -> View: Nhập Từ khóa / Chọn Ngày đặt
+View -> View: onChange / ấn Enter -> gọi changePage(0)
+
+View -> Controller: GET /admin/api/reservations/content\n?keyword=...&date=...
+
+Controller -> Controller: Kiểm tra và Parse tham số 'date' sang LocalDate
+
+Controller -> Service: searchReservations(keyword, searchDate, page, size)
+
+alt searchDate != null
+    Service -> Service: startOfDay = searchDate.atStartOfDay()
+    Service -> Service: endOfDay = searchDate.atTime(LocalTime.MAX)
+else searchDate == null
+    Service -> Service: startOfDay = null, endOfDay = null
+end
+
+Service -> DB: searchReservations(keyword, startOfDay, endOfDay, pageRequest)
+DB --> Service: Trả về danh sách phân trang (Page<Reservation>)
+Service --> Controller: Trả về Page<Reservation>
+
+Controller -> TableService: getTablesPage(0, 1000)
+TableService -> DB: findAll()
+DB --> TableService: Trả về danh sách bàn
+TableService --> Controller: Trả về List<DiningTable> (Để dùng cho Modal Duyệt đơn)
+
+Controller -> Controller: Đưa dữ liệu vào Model (reservationPage, tables)
+Controller -> Controller: Đưa ngược tham số vào Model (keyword, searchDate) \n-> Để giữ trạng thái bộ lọc trên giao diện
+
+Controller --> View: Trả về HTML Fragment "admin/reservations :: content"
+View --> Admin: Thay thế nội dung bảng & Giữ nguyên giá trị ô tìm kiếm
+@enduml

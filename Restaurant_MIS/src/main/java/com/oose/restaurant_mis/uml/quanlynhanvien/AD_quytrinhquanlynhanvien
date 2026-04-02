@@ -1,0 +1,56 @@
+@startuml
+start
+:Admin đăng nhập (AuthInterceptor kiểm tra role=Quản lý);
+:Admin vào trang quản lý nhân viên;
+:View hiển thị danh sách nhân viên + bộ lọc;
+repeat
+  if (Admin muốn làm gì?) then (Tìm kiếm/lọc)
+    :Nhập từ khóa hoặc chọn role;
+    :Bấm tìm kiếm;
+    :Gọi API searchStaff với keyword và roleId;
+    :Hiển thị danh sách kết quả;
+  elseif (Thêm mới) then
+    :Bấm nút thêm nhân viên;
+    :Nhập thông tin (username, password, fullname, email, phone, role, status);
+    :Bấm lưu;
+    :Hệ thống kiểm tra trùng username/email/phone;
+    if (Trùng?) then (Có)
+      :Hiển thị lỗi, yêu cầu sửa;
+    else (Không)
+      :Lưu vào DB, ghi audit log;
+      :Tải lại danh sách;
+    endif
+  elseif (Sửa) then
+    :Chọn nhân viên, bấm sửa;
+    :Form hiện thông tin cũ;
+    :Chỉnh sửa các trường;
+    :Bấm lưu;
+    :Kiểm tra trùng (bỏ qua chính mình);
+    if (Trùng với nhân viên khác?) then (Có)
+      :Hiển thị lỗi;
+    else (Không)
+      :Cập nhật DB, ghi audit log;
+      :Tải lại danh sách;
+    endif
+  elseif (Xóa) then
+    :Chọn nhân viên, bấm Xóa;
+    :Xác nhận xóa;
+    :Kiểm tra ràng buộc (có hóa đơn liên quan?);
+    if (Có dữ liệu liên quan?) then (Có)
+      :Hiển thị lỗi không thể xóa;
+    else (Không)
+      :Xóa DB, ghi audit log;
+      :Tải lại danh sách (có lùi trang nếu xóa bản ghi cuối);
+    endif
+  elseif (Khóa/mở khóa) then
+    :Chọn nhân viên, sửa status (trong form sửa);
+    :Lưu thay đổi;
+    :Cập nhật DB;
+    :Khi đăng nhập, status sẽ được kiểm tra;
+  elseif (Phân quyền) then
+    :Khi sửa nhân viên, chọn role khác;
+    :Lưu, role mới áp dụng ngay;
+  endif
+repeat while (Admin còn làm việc?) -> (Có)
+stop
+@enduml

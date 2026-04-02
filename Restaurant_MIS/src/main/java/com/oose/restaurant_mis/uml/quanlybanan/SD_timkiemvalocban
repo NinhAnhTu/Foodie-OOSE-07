@@ -1,0 +1,22 @@
+@startuml
+actor Admin
+participant "TableAdminController" as TAC
+participant "DiningTableService" as DTS
+participant "DiningTableRepository" as DTR
+participant "Database" as DB
+
+Admin -> TAC: GET /admin/api/tables/content?keyword=...&status=...&capacity=...
+activate TAC
+
+TAC -> DTS: searchTables(keyword, status, capacity, page, size)
+activate DTS
+DTS -> DTR: searchTables(code, status, capacity, Pageable)
+DTR -> DB: SELECT * FROM restaurant_tables WHERE ... (dynamic query)
+DB --> DTR: list tables
+DTR --> DTS: Page<DiningTable>
+DTS --> TAC: page
+deactivate DTS
+
+TAC --> Admin: tables.html fragment
+deactivate TAC
+@enduml

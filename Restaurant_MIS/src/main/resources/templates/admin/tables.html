@@ -1,0 +1,315 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Quản lý sơ đồ bàn</h3>
+            <p class="text-muted small mb-0">Quản lý vị trí, sức chứa và mã bàn</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-light shadow-sm rounded-pill px-3 border ms-1" onclick="refreshPage()" title="Làm mới">
+                <i class="fas fa-sync-alt text-secondary"></i>
+            </button>
+            <select id="filterStatus" class="form-select rounded-pill shadow-sm border" style="width: 150px;" onchange="searchTable()">
+                <option value="">Tất cả</option>
+                <option value="EMPTY" th:selected="${selectedStatus != null and selectedStatus.name() == 'EMPTY'}">Trống</option>
+                <option value="OCCUPIED" th:selected="${selectedStatus != null and selectedStatus.name() == 'OCCUPIED'}">Có khách</option>
+                <option value="RESERVED" th:selected="${selectedStatus != null and selectedStatus.name() == 'RESERVED'}">Đặt trước</option>
+            </select>
+
+            <input type="number" id="filterCapacity" class="form-control rounded-pill shadow-sm border" style="width: 120px;" placeholder="Số người" th:value="${selectedCapacity}" onkeypress="if(event.key === 'Enter') searchTable()">
+
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 200px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchTableInput" class="form-control border-0 shadow-none bg-white" placeholder="Mã bàn" th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchTable()">Tìm</button>
+            </div>
+
+            <button class="btn btn-primary rounded-pill px-4 text-nowrap shadow-sm ms-2" onclick="openTableModal()">
+                <i class="fas fa-plus me-2"></i> Thêm bàn
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Tên bàn / Mã</th>
+                    <th>Khu vực</th>
+                    <th>Sức chứa</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${tablePage.content}">
+                    <td class="ps-4">
+                        <div class="fw-bold text-dark" th:text="${t.tableName}">Bàn 1</div>
+                        <div class="text-muted small" th:text="${t.tableCode}">B101</div>
+                    </td>
+                    <td th:text="${t.zone}">Khu vực A</td>
+                    <td><i class="fas fa-users me-2 text-muted"></i><span th:text="${t.capacity}">4</span> người</td>
+                    <td>
+                        <span th:if="${t.status.name() == 'EMPTY'}" class="badge rounded-pill bg-success-subtle text-success px-3 border border-success-subtle">Trống</span>
+                        <span th:if="${t.status.name() == 'OCCUPIED'}" class="badge rounded-pill bg-danger-subtle text-danger px-3 border border-danger-subtle">Có khách</span>
+                        <span th:if="${t.status.name() == 'RESERVED'}" class="badge rounded-pill bg-warning-subtle text-warning px-3 border border-warning-subtle">Đặt trước</span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button th:if="${t.status.name() == 'RESERVED'}" class="btn btn-sm btn-info text-white me-1" th:onclick="'viewReservation(' + ${t.tableId} + ')'" title="Xem thông tin khách">
+                            <i class="fas fa-eye"></i> Khách
+                        </button>
+                        <button class="btn btn-sm btn-light border text-primary me-1" th:onclick="'editTable(' + ${t.tableId} + ')'"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-light border text-danger" th:onclick="'confirmDeleteTable(' + ${t.tableId} + ')'"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+
+                <tr th:if="${tablePage.totalElements == 0}">
+                    <td colspan="5" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                        <p class="fw-bold mb-1">Không tìm thấy kết quả</p>
+                        <p class="small mb-0">Vui lòng thử lại với từ khóa hoặc bộ lọc khác.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white border-top py-3" th:if="${tablePage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, tablePage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == tablePage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="tableModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <form id="tableForm">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="tableModalTitle">Thông tin bàn ăn</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body px-4">
+                        <input type="hidden" name="tableId" id="tableId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Tên bàn</label>
+                                <input type="text" name="tableName" id="tableName" class="form-control bg-light border-0" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Mã bàn (Code)</label>
+                                <input type="text" name="tableCode" id="tableCode" class="form-control bg-light border-0" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Sức chứa</label>
+                                <input type="number" name="capacity" id="tableCapacity" class="form-control bg-light border-0" min="1" required>                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Khu vực</label>
+                                <input type="text" name="zone" id="tableZone" class="form-control bg-light border-0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Trạng thái hiện tại <span class="text-danger fw-normal ms-1">(Hệ thống tự động)</span></label>
+                            <select id="tableStatus" class="form-select bg-light border-0 text-muted" disabled>
+                                <option value="EMPTY">Trống</option>
+                                <option value="OCCUPIED">Có khách</option>
+                                <option value="RESERVED">Đặt trước</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pb-4 justify-content-center">
+                        <button type="submit" class="btn btn-primary px-5 fw-bold">Lưu</button>
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="alertDialog" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3"><i id="alertIcon" class="fas fa-exclamation-circle text-warning" style="font-size: 3.5rem;"></i></div>
+                <h4 class="fw-bold" id="alertTitle">Thông báo</h4>
+                <p class="text-muted small" id="alertMessage"></p>
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmDeleteDialog" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-trash-alt text-danger" style="font-size: 3.5rem;"></i></div>
+                <h4 class="fw-bold">Xác nhận xóa?</h4>
+                <p class="text-muted small">Dữ liệu bàn này sẽ bị xóa vĩnh viễn khỏi hệ thống.</p>
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnConfirmDelete" class="btn btn-danger w-50 rounded-pill fw-bold">Xóa</button>
+                    <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">Hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="viewReservationModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="modal-header bg-info text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-info-circle me-2"></i>Thông tin đặt bàn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body px-4">
+                    <div class="mb-3 border-bottom pb-2"><strong>Khách hàng:</strong> <span id="resCustomerName" class="text-primary fw-bold"></span></div>
+                    <div class="mb-3 border-bottom pb-2"><strong>Số điện thoại:</strong> <span id="resPhone"></span></div>
+                    <div class="mb-3 border-bottom pb-2"><strong>Email:</strong> <span id="resEmail"></span></div>
+                    <div class="mb-3 border-bottom pb-2"><strong>Thời gian đến:</strong> <span id="resTime" class="text-danger fw-bold"></span></div>
+                    <div class="mb-3 border-bottom pb-2"><strong>Số lượng khách:</strong> <span id="resGuestCount"></span> người</div>
+                    <div class="mb-2"><strong>Ghi chú:</strong> <span id="resNote" class="text-muted"></span></div>
+                </div>
+                <div class="modal-footer border-0 pb-4 justify-content-center">
+                    <button type="button" class="btn btn-light px-4 rounded-pill fw-bold" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        var tableModal = new bootstrap.Modal(document.getElementById('tableModal'));
+        var alertDialog = new bootstrap.Modal(document.getElementById('alertDialog'));
+        var deleteDialog = new bootstrap.Modal(document.getElementById('confirmDeleteDialog'));
+
+        function showNotice(title, msg, type = 'warning') {
+            document.getElementById('alertTitle').innerText = title;
+            document.getElementById('alertMessage').innerText = msg;
+            const icon = document.getElementById('alertIcon');
+            icon.className = type === 'warning' ? 'fas fa-exclamation-circle text-warning' : 'fas fa-check-circle text-success';
+            alertDialog.show();
+        }
+
+        function changePage(page) {
+            const keyword = document.getElementById('searchTableInput').value.trim();
+            const status = document.getElementById('filterStatus').value;
+            const capacity = document.getElementById('filterCapacity').value;
+
+            let url = `/admin/api/tables/content?page=${page}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (status) url += `&status=${status}`;
+            if (capacity) url += `&capacity=${capacity}`;
+
+            loadModule('/admin/tables', url, null); // Truyền null để chống kẹt Form
+        }
+
+        function searchTable() { changePage(0); }
+
+        function refreshPage() {
+            document.getElementById('searchTableInput').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterCapacity').value = '';
+            changePage(0);
+        }
+
+        function openTableModal() {
+            document.getElementById('tableForm').reset();
+            document.getElementById('tableId').value = '';
+            document.getElementById('tableName').value = '';
+            document.getElementById('tableCode').value = '';
+            document.getElementById('tableCapacity').value = '4'; // Gợi ý mặc định 4 người
+            document.getElementById('tableZone').value = '';
+            document.getElementById('tableStatus').value = 'EMPTY'; // Mặc định hiện chữ Trống
+
+            document.getElementById('tableModalTitle').innerText = 'Thêm bàn mới';
+            tableModal.show();
+        }
+
+        function editTable(id) {
+            fetch('/admin/api/tables/edit/' + id)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('tableId').value = data.tableId;
+                    document.getElementById('tableName').value = data.tableName;
+                    document.getElementById('tableCode').value = data.tableCode;
+                    document.getElementById('tableCapacity').value = data.capacity;
+                    document.getElementById('tableZone').value = data.zone;
+                    document.getElementById('tableStatus').value = data.status; // Hiển thị trạng thái hiện tại
+                    document.getElementById('tableModalTitle').innerText = 'Cập nhật bàn ăn';
+                    tableModal.show();
+                });
+        }
+
+        document.getElementById('tableForm').onsubmit = function(e) {
+            e.preventDefault();
+            const formData = new FormData(this); // Gửi chuẩn form
+
+            fetch('/admin/api/tables/save', { method: 'POST', body: formData })
+                .then(async res => {
+                    if(res.ok) {
+                        tableModal.hide();
+                        changePage(/*[[${currentPage != null ? currentPage : 0}]]*/ 0);
+                    } else {
+                        const errorMessage = await res.text();
+                        showNotice("Lỗi dữ liệu", errorMessage, "warning"); // Hiển thị lỗi DB
+                    }
+                }).catch(err => showNotice("Lỗi hệ thống", "Không thể kết nối máy chủ", "warning"));
+        };
+
+        function confirmDeleteTable(id) {
+            deleteDialog.show();
+            document.getElementById('btnConfirmDelete').onclick = function() {
+                fetch('/admin/api/tables/delete/' + id, { method: 'DELETE' })
+                    .then(async res => {
+                        if(res.ok) {
+                            deleteDialog.hide();
+
+                            let currentRowCount = document.querySelectorAll('tbody tr').length;
+                            let targetPage = /*[[${currentPage != null ? currentPage : 0}]]*/ 0;
+                            if (currentRowCount === 1 && targetPage > 0) {
+                                targetPage--;
+                            }
+                            changePage(targetPage);
+                        } else {
+                            const data = await res.text();
+                            deleteDialog.hide();
+                            showNotice("Không thể xóa", data, "warning");
+                        }
+                    });
+            };
+        }
+
+        // Dialog xem đặt bàn
+        function viewReservation(tableId) {
+            fetch('/admin/api/tables/reservation/' + tableId)
+                .then(res => res.json())
+                .then(data => {
+                    if(!data || !data.customerName) {
+                        showNotice("Thông báo", "Không tìm thấy thông tin đặt bàn!", "warning");
+                        return;
+                    }
+                    document.getElementById('resCustomerName').innerText = data.customerName;
+                    document.getElementById('resPhone').innerText = data.phone;
+                    document.getElementById('resEmail').innerText = data.email || 'Không có';
+                    let timeObj = new Date(data.reservationTime);
+                    document.getElementById('resTime').innerText = timeObj.toLocaleString();
+                    document.getElementById('resGuestCount').innerText = data.guestCount;
+                    document.getElementById('resNote').innerText = data.note || 'Không có';
+                    new bootstrap.Modal(document.getElementById('viewReservationModal')).show();
+                })
+                .catch(() => showNotice("Lỗi", "Không thể lấy dữ liệu khách!"));
+        }
+
+        document.getElementById('searchTableInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchTable();
+        });
+    </script>
+</div>

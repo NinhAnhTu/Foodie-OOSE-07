@@ -1,0 +1,44 @@
+@startuml
+start
+:Khách hàng bấm nút "Gọi tính tiền" \ntrên điện thoại (table-bill.html);
+:Hệ thống hiển thị Modal xác nhận;
+
+if (Khách hàng bấm "Đồng ý"?) then (Đúng)
+  :Giao diện gọi Fetch API POST /table/api/checkout;
+
+  note right
+    **Backend Processing (CustomerOrderController)**
+  end note
+
+  :Lấy ID Hóa đơn (orderId) từ Session của khách;
+  :Truy xuất Hóa đơn (Order) và \nDanh sách món (OrderDetail) từ Database;
+
+  :Kiểm tra toàn bộ danh sách món;
+  if (Có món nào trạng thái KHÁC "Hoàn tất" (SERVED)?) then (Có)
+    :Trả về lỗi: "Chưa thể thanh toán! \nVui lòng đợi tất cả món được phục vụ...";
+
+    note right
+      **Frontend Processing**
+    end note
+    :Hiển thị thông báo (Notice) cho khách hàng;
+    stop
+  else (Không - Tất cả món đã lên đủ)
+  endif
+
+  :Cập nhật trạng thái Hóa đơn: \nOrder.status = PENDING_PAYMENT;
+  :Lưu Hóa đơn xuống Database;
+
+  :Lấy tên Bàn (tableName) từ Hóa đơn;
+  :Bắn tín hiệu WebSocket báo Nhân viên/Admin \n(CHECKOUT_REQUEST | tableName);
+
+  :Trả về chuỗi "success";
+
+  note right
+    **Frontend Processing**
+  end note
+  :Hiển thị thông báo thành công cho Khách hàng \n("Đã gửi yêu cầu thanh toán!");
+else (Sai - Khách bấm "Hủy")
+  :Đóng Modal xác nhận;
+endif
+stop
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+title Activity Diagram - Quên mật khẩu
+skinparam ActivityFontSize 14
+skinparam ArrowFontSize 12
+
+start
+
+:Người dùng chọn "Quên mật khẩu";
+:Hệ thống hiển thị form nhập Email;
+:Người dùng nhập Email và bấm "Gửi yêu cầu";
+
+partition "Hệ thống (Backend)" {
+    :Tìm User theo Email;
+
+    if (Email tồn tại?) then (Có)
+        :Tạo Token ngẫu nhiên (UUID);
+        :Lưu PasswordReset;
+        :Gửi email chứa link reset;
+        :Thông báo "Vui lòng kiểm tra email";
+    else (Không)
+        :Thông báo lỗi "Email không tồn tại";
+    endif
+}
+
+stop
+@enduml

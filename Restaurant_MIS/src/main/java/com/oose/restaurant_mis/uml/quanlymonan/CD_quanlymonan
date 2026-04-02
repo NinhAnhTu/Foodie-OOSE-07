@@ -1,0 +1,102 @@
+@startuml
+' ================== DEFINE ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(MenuItem) {
+  - itemId: Integer
+  - name: String
+  - price: Double
+  - imageUrl: String
+  - isAvailable: Boolean
+  - description: String
+  + getters/setters
+}
+
+entity(Category) {
+  - categoryId: Integer
+  - name: String
+  - displayOrder: Integer
+  - isActive: Boolean
+  + getters/setters
+}
+
+entity(AuditLog) {
+  - logId: Integer
+  - user: User
+  - action: String
+  - tableName: String
+  - recordId: Integer
+  - oldValue: String
+  - newValue: String
+  - createdAt: LocalDateTime
+  + getters/setters
+}
+
+' ================== CONTROLLER ==================
+controller(DishAdminController) {
+  + getContent(page, size, keyword, categoryId, Model): String
+  + save(menuItem, imageFile, HttpSession): ResponseEntity
+  + edit(id): MenuItem
+  + delete(id, HttpSession): String
+}
+
+' ================== SERVICE ==================
+service(MenuItemService) {
+  + searchDishes(keyword, categoryId, page, size): Page
+  + getAllActiveItems(): List
+  + getAllMenuItems(): List
+  + getById(id): MenuItem
+  + save(menuItem): void
+  + delete(id): void
+  + getAllCategories(): List
+}
+
+service(CategoryService) {
+  + getAllCategories(): List
+  + getById(id): Category
+}
+
+service(AuditService) {
+  + log(user, action, tableName, recordId, oldValue, newValue): void
+}
+
+' ================== REPOSITORY ==================
+repository(MenuItemRepository) {
+  + findAll(Pageable): Page
+  + findByIsAvailableTrue(): List
+  + findByNameContainingIgnoreCase(name, Pageable): Page
+  + findByCategory_CategoryId(categoryId, Pageable): Page
+  + findByNameContainingIgnoreCaseAndCategory_CategoryId(name, categoryId, Pageable): Page
+}
+
+repository(CategoryRepository) {
+  + findAll(): List
+  + findById(id): Optional
+}
+
+repository(AuditLogRepository) {
+  + save(AuditLog): AuditLog
+}
+
+' ================== RELATION ==================
+DishAdminController --> MenuItemService
+DishAdminController --> CategoryService
+DishAdminController --> AuditService
+
+MenuItemService --> MenuItemRepository
+MenuItemService --> CategoryRepository
+
+CategoryService --> CategoryRepository
+
+AuditService --> AuditLogRepository
+
+MenuItemRepository ..> MenuItem
+CategoryRepository ..> Category
+AuditLogRepository ..> AuditLog
+
+MenuItem "*" -- "1" Category : belongs to
+@enduml

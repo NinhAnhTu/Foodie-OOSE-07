@@ -1,0 +1,35 @@
+@startuml
+start
+:Đầu bếp (Chef) chọn món trên Kitchen Dashboard;
+:Bấm nút "Đang nấu" (COOKING) hoặc "Hoàn tất" (SERVED);
+
+:Giao diện gọi hàm JS **updateStatus(detailId, status)**;
+:Lấy CSRF Token và Header từ thẻ meta;
+:Gửi Request POST /chef/api/update-status/{detailId}?status=...;
+
+note right
+  **Backend Processing (ChefController & OrderService)**
+end note
+
+:Truy xuất Chi tiết món (OrderDetail) từ Database theo detailId;
+
+if (OrderDetail có tồn tại?) then (Có)
+  :Cập nhật OrderDetail.servedStatus = status \n(Thành COOKING hoặc SERVED);
+  :Lưu OrderDetail cập nhật xuống Database;
+
+  :Bắn tín hiệu WebSocket cho Nhân viên (Waiter) \n(Báo thay đổi trạng thái món);
+  :Bắn tín hiệu WebSocket cho Khách hàng (Customer) \n(Cập nhật màn hình theo dõi đơn);
+
+  :Trả về chuỗi "success";
+
+  note right
+    **Frontend Processing**
+  end note
+  :Giao diện gọi hàm **refreshKitchenList()** \nđể tải lại danh sách món của Bếp;
+else (Không)
+  :Trả về thông báo lỗi "Không tìm thấy món ăn";
+  :Hiển thị alert() báo lỗi trên màn hình Bếp;
+endif
+
+stop
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+title Activity Diagram - Đăng nhập bàn gọi món
+
+start
+
+:Nhập thông tin bàn;
+note right
+Tên khách
+Mã bàn
+Mã hóa đơn
+end note
+
+if (Thông tin hợp lệ?) then (Không)
+    :Báo lỗi;
+    stop
+else (Có)
+    :Vào trang menu gọi món;
+endif
+
+stop
+@enduml

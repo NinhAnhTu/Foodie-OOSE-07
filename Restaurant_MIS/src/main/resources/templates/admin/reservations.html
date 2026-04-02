@@ -1,0 +1,291 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Quản lý đặt bàn</h3>
+            <p class="text-muted small mb-0">Duyệt và sắp xếp bàn cho khách</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <input type="date" id="filterDate" class="form-control rounded-pill shadow-sm border text-muted fw-bold" style="width: 150px;" th:value="${searchDate}" onchange="searchReservation()">
+
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 250px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchResInput" class="form-control border-0 shadow-none bg-white" placeholder="Tên khách hàng..." th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchReservation()">Tìm</button>
+            </div>
+            <span class="badge bg-primary rounded-pill px-3 py-2 ms-2 shadow-sm" th:text="${reservationPage.totalElements + ' yêu cầu'}"></span>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Mã Đặt</th>
+                    <th>Khách hàng</th>
+                    <th>Liên hệ</th>
+                    <th>Số khách</th>
+                    <th>Thời gian đặt</th>
+                    <th>Trạng thái & Bàn</th>
+                    <th class="text-end pe-4">Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="r : ${reservationPage.content}">
+                    <td class="ps-4 fw-bold" th:text="'#RES-' + ${r.reservationId}"></td>
+                    <td>
+                        <div class="fw-bold" th:text="${r.customerName}"></div>
+                        <div class="small text-muted" th:text="${r.email}"></div>
+                    </td>
+                    <td th:text="${r.phone}"></td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            <i class="fas fa-users me-1"></i> <span th:text="${r.guestCount}"></span>
+                        </span>
+                    </td>
+                    <td th:text="${#temporals.format(r.reservationTime, 'HH:mm dd/MM/yyyy')}"></td>
+                    <td>
+                        <span th:if="${r.status.name() == 'PENDING'}" class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 rounded-pill">Chờ duyệt</span>
+                        <span th:if="${r.status.name() == 'CONFIRMED'}" class="badge bg-success-subtle text-success border border-success-subtle px-3 rounded-pill">Đã xác nhận</span>
+                        <span th:if="${r.status.name() == 'CANCELLED'}" class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 rounded-pill">Đã từ chối</span>
+                        <span th:if="${r.status.name() == 'DONE'}" class="badge bg-info-subtle text-info border border-info-subtle px-3 rounded-pill">Hoàn tất</span>
+
+                        <div th:if="${r.table != null}" class="mt-1 small fw-bold text-primary">
+                            <i class="fas fa-table me-1"></i><span th:text="${r.table.tableName}"></span>
+                        </div>
+                    </td>
+                    <td class="text-end pe-4">
+                        <div th:if="${r.status.name() == 'PENDING'}" class="btn-group">
+                            <button class="btn btn-sm btn-success shadow-sm" th:onclick="'openAcceptModal(' + ${r.reservationId} + ')'">
+                                <i class="fas fa-check"></i> Duyệt
+                            </button>
+                            <button class="btn btn-sm btn-danger shadow-sm ms-1" th:onclick="'openRejectModal(' + ${r.reservationId} + ')'">
+                                <i class="fas fa-times"></i> Từ chối
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr th:if="${reservationPage.totalElements == 0}">
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">Không có yêu cầu đặt bàn nào phù hợp.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${reservationPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, reservationPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'">
+                        <a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a>
+                    </li>
+                    <li class="page-item" th:classappend="${currentPage == reservationPage.totalPages - 1} ? 'disabled'">
+                        <a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="acceptTableModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="fas fa-calendar-check me-2"></i>Chọn bàn cho khách</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="modalResId">
+                    <label class="form-label fw-bold">Chọn bàn ghép cho khách:</label>
+                    <select class="form-select" id="modalTableSelect">
+                        <option value="">-- Vui lòng chọn một bàn --</option>
+                        <option th:each="t : ${tables}"
+                                th:value="${t.tableId}"
+                                th:text="${t.tableName} + ' (' + ${t.capacity} + ' người) ' + ${t.status.name() == 'EMPTY' ? '' : ' - Đã có người/đặt trước'}"
+                                th:disabled="${t.status.name() != 'EMPTY'}">
+                        </option>
+                    </select>
+                </div>
+                <div class="modal-footer border-0 pb-4 justify-content-center">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-success px-4" onclick="confirmAccept()">
+                        <i class="fas fa-paper-plane me-1"></i>Xác nhận & Gửi Mail
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="rejectModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title"><i class="fas fa-times-circle me-2"></i>Từ chối đặt bàn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" id="rejectResId">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn lý do từ chối:</label>
+                        <select class="form-select mb-3" id="rejectReasonSelect" onchange="toggleCustomReason()">
+                            <option value="Rất tiếc, nhà hàng đã hết bàn trống trong khung giờ bạn chọn.">Hết bàn trong khung giờ này</option>
+                            <option value="Rất tiếc, nhà hàng có sự kiện đột xuất nên không thể phục vụ.">Sự kiện đột xuất / Đóng cửa</option>
+                            <option value="Rất tiếc, số lượng khách vượt quá sức chứa tối đa của nhà hàng hiện tại.">Số lượng khách quá đông</option>
+                            <option value="other">Lý do khác (Nhập chi tiết bên dưới)</option>
+                        </select>
+                        <textarea class="form-control d-none" id="rejectReasonCustom" rows="3" placeholder="Nhập chi tiết lý do gửi cho khách..."></textarea>
+                    </div>
+                    <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1"></i>Hệ thống sẽ tự động gửi email từ chối kèm lý do này cho khách hàng.</p>
+                </div>
+                <div class="modal-footer border-0 pb-4 justify-content-center">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger px-4" onclick="confirmReject()">
+                        <i class="fas fa-paper-plane me-1"></i>Từ chối & Gửi Mail
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminWarningModal" tabindex="-1" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i>
+                </div>
+                <h4 class="fw-800" id="adminWarningTitle">Cảnh báo!</h4>
+                <p class="text-muted small" id="adminWarningMessage"></p>
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">ĐÃ HIỂU</button>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #3b82f6 !important; border-color: #3b82f6 !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        var acceptModalObj = new bootstrap.Modal(document.getElementById('acceptTableModal'));
+        var rejectModalObj = new bootstrap.Modal(document.getElementById('rejectModal'));
+        var adminWarningModalObj = new bootstrap.Modal(document.getElementById('adminWarningModal'));
+
+        function showAdminWarning(title, msg) {
+            document.getElementById('adminWarningTitle').innerText = title;
+            document.getElementById('adminWarningMessage').innerText = msg;
+            adminWarningModalObj.show();
+        }
+
+        function changePage(page) {
+            const keyword = document.getElementById('searchResInput').value.trim();
+            const date = document.getElementById('filterDate').value;
+
+            let url = `/admin/api/reservations/content?page=${page}`;
+            if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+            if (date) url += `&date=${date}`;
+
+            loadModule('/admin/reservations', url, document.getElementById('nav-reservations'));
+        }
+
+        function searchReservation() { changePage(0); }
+
+        document.getElementById('searchResInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchReservation();
+        });
+
+        function openAcceptModal(resId) {
+            document.getElementById('modalResId').value = resId;
+            document.getElementById('modalTableSelect').value = '';
+            acceptModalObj.show();
+        }
+
+        function confirmAccept() {
+            const resId = document.getElementById('modalResId').value;
+            const tableId = document.getElementById('modalTableSelect').value;
+
+            if(!tableId) {
+                showAdminWarning('Thiếu thông tin', 'Vui lòng chọn một bàn trống cho khách!');
+                return;
+            }
+
+            const formData = new URLSearchParams();
+            formData.append('reservationId', resId);
+            formData.append('tableId', tableId);
+
+            fetch('/admin/api/reservations/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            })
+                .then(async res => {
+                    if (!res.ok) {
+                        showAdminWarning('Không thể duyệt', await res.text());
+                        acceptModalObj.hide();
+                        changePage(/*[[${currentPage}]]*/ 0);
+                    } else {
+                        acceptModalObj.hide();
+                        changePage(/*[[${currentPage}]]*/ 0); // Reload và giữ bộ lọc
+                    }
+                })
+                .catch(err => showAdminWarning('Lỗi kết nối', 'Mất kết nối đến máy chủ. Vui lòng thử lại!'));
+        }
+
+        function openRejectModal(resId) {
+            document.getElementById('rejectResId').value = resId;
+            document.getElementById('rejectReasonSelect').value = 'Rất tiếc, nhà hàng đã hết bàn trống trong khung giờ bạn chọn.';
+            document.getElementById('rejectReasonCustom').value = '';
+            document.getElementById('rejectReasonCustom').classList.add('d-none');
+            rejectModalObj.show();
+        }
+
+        function toggleCustomReason() {
+            const select = document.getElementById('rejectReasonSelect');
+            const customArea = document.getElementById('rejectReasonCustom');
+            if (select.value === 'other') {
+                customArea.classList.remove('d-none');
+            } else {
+                customArea.classList.add('d-none');
+            }
+        }
+
+        function confirmReject() {
+            const resId = document.getElementById('rejectResId').value;
+            const selectValue = document.getElementById('rejectReasonSelect').value;
+            let finalReason = selectValue;
+
+            if (selectValue === 'other') {
+                finalReason = document.getElementById('rejectReasonCustom').value.trim();
+                if (!finalReason) {
+                    showAdminWarning('Thiếu thông tin', 'Vui lòng nhập lý do từ chối cụ thể để gửi cho khách!');
+                    return;
+                }
+            }
+
+            const formData = new URLSearchParams();
+            formData.append('reservationId', resId);
+            formData.append('reason', finalReason);
+
+            fetch('/admin/api/reservations/reject', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            })
+                .then(res => res.text())
+                .then(data => {
+                    if(data === 'success') {
+                        rejectModalObj.hide();
+                        changePage(/*[[${currentPage}]]*/ 0);
+                    } else {
+                        showAdminWarning('Lỗi', 'Có lỗi xảy ra khi từ chối đơn. Vui lòng thử lại!');
+                    }
+                })
+                .catch(err => showAdminWarning('Lỗi kết nối', 'Mất kết nối đến máy chủ. Vui lòng thử lại!'));
+        }
+    </script>
+</div>

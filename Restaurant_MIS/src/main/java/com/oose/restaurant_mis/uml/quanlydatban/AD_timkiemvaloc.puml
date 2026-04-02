@@ -1,0 +1,63 @@
+@startuml
+start
+:Admin nhập từ khóa (Tên khách) \nhoặc chọn ngày đặt bàn;
+
+:Kích hoạt sự kiện (onChange / ấn Enter);
+:Frontend gọi hàm changePage(0);
+
+:Thu thập tham số keyword và date \ntừ các ô input;
+:Gửi Request GET /admin/api/reservations/content\n(kèm tham số keyword, date);
+
+note right
+  **Backend: ReservationAdminController**
+end note
+
+if (Tham số 'date' có giá trị?) then (Có)
+  :Parse chuỗi date sang kiểu LocalDate;
+else (Không / Bỏ trống)
+  :Gán searchDate = null;
+endif
+
+:Gọi ReservationService.searchReservations();
+
+note right
+  **Backend: ReservationService**
+end note
+
+if (searchDate != null?) then (Đúng)
+  :Tính startOfDay = 00:00:00 của ngày đó;
+  :Tính endOfDay = 23:59:59 của ngày đó;
+else (Sai)
+  :startOfDay = null;
+  :endOfDay = null;
+endif
+
+:Tạo PageRequest sắp xếp giảm dần theo 'createdAt';
+
+note right
+  **Backend: ReservationRepository**
+end note
+
+:Thực thi @Query tìm kiếm;
+note right
+  Lọc theo điều kiện:
+  - Khớp Từ khóa (LOWER(customerName))
+  - Thời gian >= startOfDay
+  - Thời gian <= endOfDay
+end note
+
+:Truy xuất Database;
+:Trả về Page<Reservation>;
+
+note right
+  **Trở lại Controller**
+end note
+
+:Đưa Page<Reservation> vào Model;
+:Lấy danh sách Bàn (tables) đưa vào Model;
+:Đưa ngược các tham số (keyword, searchDate) \nvào Model để giữ trạng thái UI;
+
+:Render fragment "admin/reservations :: content";
+:Frontend nhận HTML và cập nhật giao diện;
+stop
+@enduml

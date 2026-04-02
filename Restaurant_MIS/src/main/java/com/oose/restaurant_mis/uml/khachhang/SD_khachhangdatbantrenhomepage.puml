@@ -1,0 +1,42 @@
+@startuml
+title Sequence Diagram - Đặt bàn
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "home.html" as View
+control "HomeController" as Controller
+participant "ReservationService" as ResService
+participant "ReservationRepository" as ResRepo
+database "Database" as DB
+boundary "WebSocket Admin" as Socket
+
+Customer -> View: Gửi form đặt bàn
+View -> Controller: POST /reservation/submit
+
+activate Controller
+
+Controller -> ResService: savePendingReservation()
+activate ResService
+
+ResService -> ResRepo: save()
+activate ResRepo
+
+ResRepo -> DB: INSERT reservation
+activate DB
+DB --> ResRepo
+deactivate DB
+
+ResRepo --> ResService
+deactivate ResRepo
+
+ResService --> Controller
+deactivate ResService
+
+Controller -> Socket: notify admin
+Controller --> View: success
+
+deactivate Controller
+
+View --> Customer: Đặt bàn thành công
+
+@enduml

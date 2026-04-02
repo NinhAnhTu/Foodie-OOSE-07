@@ -1,0 +1,54 @@
+@startuml
+start
+:Admin vào trang quản lý món ăn;
+:Hiển thị danh sách (phân trang, bộ lọc theo loại, ô tìm kiếm, nút reset);
+while (Thực hiện thao tác) is (Có)
+  if (Admin muốn) then (Thêm mới)
+    :Mở form;
+    :Nhập tên, chọn loại, giá, mô tả, upload ảnh, trạng thái bán;
+    :Gửi request;
+    if (Kiểm tra giá âm) then (Có)
+      :Hiển thị lỗi;
+    elseif (Tên món đã tồn tại) then (Có)
+      :Hiển thị lỗi trùng tên;
+    else (Hợp lệ)
+      :Lưu ảnh vào server;
+      :Gọi MenuItemService.save();
+      :Lưu vào DB menu_items;
+      :Ghi audit_logs;
+      :Tải lại danh sách;
+    endif
+  elseif (Sửa)
+    :Chọn món, mở form sửa;
+    :Sửa thông tin (có thể chọn ảnh mới);
+    :Gửi request;
+    if (Kiểm tra giá âm) then (Có)
+      :Hiển thị lỗi;
+    elseif (Tên mới đã tồn tại với món khác) then (Có)
+      :Hiển thị lỗi;
+    else (Hợp lệ)
+      :Lấy dữ liệu cũ từ DB;
+      :Nếu có ảnh mới, xóa ảnh cũ và lưu ảnh mới;
+      :Cập nhật DB menu_items;
+      :Ghi audit_logs;
+      :Tải lại danh sách;
+    endif
+  elseif (Xóa)
+    :Xác nhận xóa;
+    :Kiểm tra ràng buộc (order_details);
+    if (Món đã có trong hóa đơn?) then (Có)
+      :Hiển thị lỗi không thể xóa;
+    else (Không)
+      :Xóa món khỏi DB;
+      :Ghi audit_logs;
+      :Cập nhật danh sách (lùi trang nếu cần);
+    endif
+  elseif (Lọc/Tìm kiếm)
+    :Chọn loại món hoặc nhập từ khóa;
+    :Gửi request;
+    :Truy vấn DB với điều kiện;
+    :Hiển thị kết quả;
+  endif
+endwhile (Không)
+stop
+@enduml

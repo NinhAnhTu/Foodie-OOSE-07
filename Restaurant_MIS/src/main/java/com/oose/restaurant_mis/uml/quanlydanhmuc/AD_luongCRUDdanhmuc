@@ -1,0 +1,61 @@
+@startuml
+start
+:Admin đăng nhập và vào trang quản lý danh mục;
+:Trang hiển thị danh sách danh mục (phân trang, có ô tìm kiếm và nút reset);
+repeat
+  if (Admin muốn?) then (Thêm)
+    :Nhấn "Thêm loại mới";
+    :Modal mở, nhập tên, chọn trạng thái;
+    :Gửi request POST save;
+    if (Tên bị trùng?) then (Có)
+      :Hiển thị lỗi "Tên loại món ăn này đã tồn tại! Vui lòng chọn tên khác";
+      :Quay lại nhập lại;
+    else (Không)
+      :Lưu vào DB;
+      :Ghi audit log (CREATE);
+      :Tải lại danh sách;
+    endif
+  elseif (Sửa) then
+    :Chọn danh mục cần sửa;
+    :Load dữ liệu hiện tại lên modal;
+    :Sửa tên, trạng thái;
+    :Gửi POST save;
+    if (Tên bị trùng với danh mục khác?) then (Có)
+      :Hiển thị lỗi;
+      :Quay lại sửa;
+    else (Không)
+      :Cập nhật DB;
+      :Ghi audit log (UPDATE);
+      :Tải lại danh sách;
+    endif
+  elseif (Xóa) then
+    :Chọn danh mục cần xóa;
+    :Hiển thị confirm;
+    if (Xác nhận?) then (Có)
+      if (Danh mục đang chứa món ăn?) then (Có)
+        :Hiển thị lỗi "Không thể xóa vì danh mục đang chứa món ăn.";
+      else (Không)
+        :Xóa khỏi DB;
+        :Ghi audit log (DELETE);
+        :Tải lại danh sách (xử lý lùi trang nếu xóa phần tử cuối);
+      endif
+    else (Không)
+      :Không làm gì;
+    endif
+  elseif (Tìm kiếm) then
+    :Nhập từ khóa vào ô tìm kiếm;
+    :Nhấn Enter hoặc nút Tìm;
+    :Gửi request GET với keyword;
+    :Hiển thị danh sách kết quả;
+  elseif (Làm mới) then
+    :Nhấn nút làm mới;
+    :Xóa keyword, reset trang về 0;
+    :Hiển thị danh sách đầy đủ;
+  elseif (Chuyển trang) then
+    :Nhấn số trang;
+    :Gửi request với page mới;
+    :Hiển thị danh sách trang đó;
+  endif
+repeat while (Còn thao tác?) -> (Có)
+stop
+@enduml

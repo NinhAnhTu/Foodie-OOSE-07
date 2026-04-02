@@ -1,0 +1,39 @@
+@startuml
+title Activity Diagram - Kiểm tra phiên làm việc và Phân quyền
+skinparam ActivityFontSize 14
+skinparam ArrowFontSize 12
+
+start
+
+:Người dùng gửi yêu cầu truy cập một URL\n(Ví dụ: /admin/dashboard, /waiter/order);
+
+partition "AuthInterceptor" {
+    :Hệ thống lấy Session hiện tại;
+
+    if (Session có tồn tại User (loggedInUser)?) then (Không)
+        :Chuyển hướng đến trang Đăng nhập (/auth/login);
+        stop
+    else (Có)
+        :Lấy thông tin Role của User;
+        :Lấy URI yêu cầu;
+
+        if (Role là ADMIN?) then (Đúng)
+            :Cho phép truy cập tất cả tài nguyên;
+        else (Sai)
+            if (URI bắt đầu bằng /waiter và Role là WAITER?) then (Đúng)
+                :Cho phép truy cập;
+            elseif (URI bắt đầu bằng /chef và Role là CHEF?) then (Đúng)
+                :Cho phép truy cập;
+            else (Sai quyền)
+                :Chuyển hướng đến trang Đăng nhập;
+                :Thông báo: "Bạn không có quyền truy cập!";
+                stop
+            endif
+        endif
+    endif
+}
+
+:Xử lý yêu cầu và hiển thị trang cho người dùng;
+
+stop
+@enduml

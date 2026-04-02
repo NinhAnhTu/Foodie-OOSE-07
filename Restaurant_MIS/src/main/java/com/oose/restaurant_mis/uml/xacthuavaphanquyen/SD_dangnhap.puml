@@ -1,0 +1,45 @@
+@startuml
+title Sequence Diagram - Đăng nhập
+autonumber
+
+actor "Nhân viên" as User
+boundary "login.html" as LoginPage
+control "AuthController" as AuthCtrl
+participant "AuthService" as AuthService
+database "Database" as DB
+
+User -> LoginPage: Nhập username + password
+LoginPage -> AuthCtrl: POST /auth/login
+activate AuthCtrl
+
+AuthCtrl -> AuthService: authenticate(username,password)
+activate AuthService
+
+AuthService -> DB: findByUsername(username)
+activate DB
+DB --> AuthService: User Object
+deactivate DB
+
+AuthService -> AuthService: BCrypt.checkpw()
+
+alt Đăng nhập thành công
+    AuthService --> AuthCtrl: User Object
+    AuthCtrl -> AuthCtrl: session.setAttribute("loggedInUser", user)
+
+    alt ADMIN
+        AuthCtrl --> LoginPage: Redirect /admin/dashboard
+    else WAITER
+        AuthCtrl --> LoginPage: Redirect /waiter/dashboard
+    else CHEF
+        AuthCtrl --> LoginPage: Redirect /chef/dashboard
+    end
+
+else Sai thông tin
+    AuthService --> AuthCtrl: Exception
+    AuthCtrl --> LoginPage: Hiển thị lỗi đăng nhập
+end
+
+deactivate AuthService
+deactivate AuthCtrl
+
+@enduml

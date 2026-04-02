@@ -1,0 +1,56 @@
+@startuml
+title Sequence Diagram - Khôi phục mật khẩu
+autonumber
+
+actor "Người dùng" as User
+boundary "reset_password.html" as ResetPage
+control "ForgotPasswordController" as Ctrl
+participant "PasswordResetService" as Service
+participant "UserRepository" as UserRepo
+participant "PasswordResetRepository" as ResetRepo
+database "Database" as DB
+
+User -> ResetPage: Click Link reset password
+ResetPage -> Ctrl: GET /reset-password(token)
+activate Ctrl
+
+Ctrl -> Service: validateToken(token)
+activate Service
+
+Service -> ResetRepo: findByToken(token)
+activate ResetRepo
+ResetRepo -> DB: SELECT * FROM password_resets WHERE token = ?
+activate DB
+DB --> ResetRepo: PasswordReset Object
+deactivate DB
+ResetRepo --> Service: PasswordReset Object
+deactivate ResetRepo
+
+alt Token hợp lệ
+    Service --> Ctrl: PasswordReset Object
+    Ctrl --> ResetPage: Hiển thị form nhập mật khẩu mới
+else Token lỗi/hết hạn
+    Service --> Ctrl: null
+    Ctrl --> ResetPage: Thông báo lỗi
+end
+
+deactivate Service
+deactivate Ctrl
+
+User -> ResetPage: Nhập mật khẩu mới
+ResetPage -> Ctrl: POST /reset-password(token,password)
+activate Ctrl
+
+Ctrl -> Service: updatePassword(reset,password)
+activate Service
+
+Service -> UserRepo: save(User)
+Service -> ResetRepo: save(isUsed=true)
+
+Service --> Ctrl: Success
+Ctrl --> ResetPage: Đổi mật khẩu thành công
+
+deactivate Service
+deactivate Ctrl
+
+@enduml

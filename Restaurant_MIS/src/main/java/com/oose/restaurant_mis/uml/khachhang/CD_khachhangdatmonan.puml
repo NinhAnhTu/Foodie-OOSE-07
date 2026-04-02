@@ -1,0 +1,101 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+title Class Diagram - Khách hàng gọi món (Updated Style)
+
+' ================== DEFINE MACROS ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(Order) {
+    - orderId : Integer
+    - table : DiningTable
+    - staff : User
+    - discount : Discount
+    - customerName : String
+    - totalAmount : Double
+    - finalAmount : Double
+    - status : OrderStatus
+    - createdAt : LocalDateTime
+    - closedAt : LocalDateTime
+    + getters/setters()
+}
+
+entity(OrderDetail) {
+    - orderDetailId : Integer
+    - order : Order
+    - menuItem : MenuItem
+    - quantity : Integer
+    - unitPrice : Double
+    - note : String
+    + getters/setters()
+}
+
+entity(MenuItem) {
+    - itemId : Integer
+    - category : Category
+    - name : String
+    - price : Double
+    - imageUrl : String
+    - isAvailable : Boolean
+    - description : String
+    + getters/setters()
+}
+
+' ================== CONTROLLER ==================
+controller(CustomerOrderController) {
+    - sessionCart : Map<Integer, CartItemDto>
+    + processLogin(customerName : String, tableCode : String, orderId : Integer, session : HttpSession, model : Model) : String
+    + updateCart(itemId : Integer, qtyChange : int, session : HttpSession) : String
+    + submitCart(session : HttpSession) : String
+    + requestCheckout(session : HttpSession) : String
+}
+
+' ================== SERVICE ==================
+service(OrderService) {
+    + addItemToOrder(orderId : Integer, itemId : Integer, quantity : Integer, note : String) : void
+    + getOrderDetails(orderId : Integer) : List<OrderDetail>
+    + recalculateTotal(orderId : Integer) : void
+}
+
+' ================== REPOSITORY ==================
+repository(OrderRepository) {
+    + findById(id : Integer) : Optional<Order>
+    + save(order : Order) : Order
+    + findFirstByTable_TableIdAndStatusIn(tableId : Integer, statuses : Collection<OrderStatus>) : Order
+}
+
+repository(OrderDetailRepository) {
+    + findByOrder_OrderId(orderId : Integer) : List<OrderDetail>
+    + findByOrder_OrderIdAndMenuItem_ItemId(orderId : Integer, itemId : Integer) : OrderDetail
+    + save(orderDetail : OrderDetail) : OrderDetail
+}
+
+repository(MenuItemRepository) {
+    + findById(id : Integer) : Optional<MenuItem>
+    + findAll() : List<MenuItem>
+}
+
+' ================== RELATIONSHIPS ==================
+' Controller -> Service & Repository
+CustomerOrderController --> OrderService
+CustomerOrderController --> OrderDetailRepository
+
+' Service -> Repository
+OrderService --> OrderRepository
+OrderService --> OrderDetailRepository
+OrderService --> MenuItemRepository
+
+' Repository -> Entity
+OrderRepository ..> Order
+OrderDetailRepository ..> OrderDetail
+MenuItemRepository ..> MenuItem
+
+' Quan hệ nội bộ
+Order "1" *-- "many" OrderDetail : contains >
+OrderDetail "many" *-- "1" MenuItem : thuộc về >
+
+@enduml

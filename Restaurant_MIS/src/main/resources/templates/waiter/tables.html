@@ -1,0 +1,141 @@
+<div th:fragment="content">
+    <style>
+        .pending-dot { position: absolute; top: 15px; right: 15px; width: 15px; height: 15px; background-color: #ffffff; border-radius: 50%; box-shadow: 0 0 10px #fff; animation: pulse-white 1.5s infinite; z-index: 10; }
+        @keyframes pulse-white { 0% { transform: scale(0.9); opacity: 1; } 70% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(0.9); opacity: 0; } }
+        .card-table { border-radius: 20px; cursor: pointer; transition: 0.3s; position: relative; }
+        .card-table:hover { transform: translateY(-5px); }
+    </style>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Sơ đồ bàn trực quan</h3>
+            <div class="d-flex gap-3 mt-2">
+                <div class="small d-flex align-items-center"><span class="badge bg-success me-2">&nbsp;</span> Trống</div>
+                <div class="small d-flex align-items-center"><span class="badge bg-danger me-2">&nbsp;</span> Có khách</div>
+                <div class="small d-flex align-items-center"><span class="badge bg-warning me-2">&nbsp;</span> Đã đặt</div>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <select id="filterTableStatus" class="form-select rounded-pill shadow-sm border" style="width: 150px;" onchange="searchTables()">
+                <option value="">Tất cả bàn</option>
+                <option value="EMPTY" th:selected="${selectedStatus != null and selectedStatus.name() == 'EMPTY'}">Sẵn sàng</option>
+                <option value="OCCUPIED" th:selected="${selectedStatus != null and selectedStatus.name() == 'OCCUPIED'}">Có khách</option>
+                <option value="RESERVED" th:selected="${selectedStatus != null and selectedStatus.name() == 'RESERVED'}">Đã đặt</option>
+            </select>
+
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 220px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchTableInput" class="form-control border-0 shadow-none bg-white" placeholder="Mã, tên bàn..." th:value="${keyword}">
+            </div>
+            <button class="btn btn-primary rounded-pill px-3 shadow-sm" onclick="searchTables()">Tìm</button>
+        </div>
+    </div>
+
+    <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-4">
+        <div th:each="t : ${tables}" class="col">
+            <div th:if="${t != null}" th:class="'card border-0 shadow-sm text-center p-4 h-100 card-table ' + ${t.status.name() == 'EMPTY' ? 'bg-success text-white' : (t.status.name() == 'OCCUPIED' ? 'bg-danger text-white' : 'bg-warning text-dark')}" th:data-id="${t.tableId}" th:data-status="${t.status.name()}" th:data-name="${t.tableName}" onclick="handleTableClick(this)">
+                <div th:if="${t.hasPendingPayment}" class="pending-dot" title="Khách yêu cầu thanh toán"></div>
+
+                <i th:class="${t.status.name() == 'EMPTY' ? 'fas fa-check-circle fa-2x mb-2' : (t.status.name() == 'OCCUPIED' ? 'fas fa-utensils fa-2x mb-2' : 'fas fa-clock fa-2x mb-2')}" class="opacity-50"></i>
+
+                <h4 class="fw-bold mb-1" th:text="${t.tableName}"></h4>
+
+                <div class="mb-2">
+                    <span class="d-inline-block border border-2 rounded-pill px-2 py-1" style="font-size: 0.75rem; font-weight: 800; border-color: currentColor !important; opacity: 0.8;" th:text="'MÃ: ' + ${t.tableCode}"></span>
+                </div>
+
+                <div class="small opacity-75" th:text="${t.capacity + ' chỗ'}"></div>
+                <div class="mt-2 small fw-800 text-uppercase">
+                    <span th:if="${t.status.name() == 'EMPTY'}">Sẵn sàng</span>
+                    <span th:if="${t.status.name() == 'OCCUPIED'}" th:text="${t.hasPendingPayment ? 'Chờ thanh toán' : 'Đang dùng'}"></span>
+                    <span th:if="${t.status.name() == 'RESERVED'}">Đã đặt trước</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script th:inline="javascript">
+        window.currentOpenOrderId = null; let waiterStompClient = null; let currentOrderSubscription = null;
+
+        function connectWaiterSocket() {
+            const socket = new SockJS('/ws-resto'); waiterStompClient = Stomp.over(socket); waiterStompClient.debug = null;
+            waiterStompClient.connect({}, function (frame) {
+                waiterStompClient.subscribe('/topic/tables', function (message) { if(typeof loadTableContent === "function") loadTableContent(); });
+            });
+        }
+        connectWaiterSocket();
+
+        function handleTableClick(element) {
+            const id = element.getAttribute('data-id'); const status = element.getAttribute('data-status'); const name = element.getAttribute('data-name');
+            window.currentTableId = id;
+
+            if (status === 'EMPTY') { document.getElementById('modalTableName').innerText = name; window.emptyModal.show(); }
+            else if (status === 'RESERVED') {
+                fetch('/waiter/api/reservations/by-table/' + id).then(res => res.json()).then(data => {
+
+                    let noteHtml = '';
+                    if (data.note && data.note.trim() !== "") {
+                        noteHtml = `
+                            <div class="mt-3 pt-3 border-top border-warning text-danger fw-bold small" style="background-color: #fff8f1; padding: 10px; border-radius: 8px;">
+                                <i class="fas fa-sticky-note me-1"></i> Ghi chú: <span class="text-dark fw-normal">${data.note}</span>
+                            </div>`;
+                    }
+
+                    // Gắn nội dung vào Dialog
+                    document.getElementById('resInfoBox').innerHTML = `
+                        <div class="h5 fw-bold text-dark mb-1">${data.customerName}</div>
+                        <div class="text-secondary small mb-3"><i class="fas fa-phone me-1"></i> ${data.phone}</div>
+                        <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                            <span><i class="fas fa-users me-1"></i> ${data.guestCount} khách</span>
+                            <span class="fw-bold text-primary"><i class="fas fa-calendar-alt me-1"></i>${new Date(data.reservationTime).toLocaleString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</span>
+                        </div>
+                        ${noteHtml}
+                    `;
+                    window.reservedActionModal.show();
+                });
+            } else if (status === 'OCCUPIED') {
+                fetch('/waiter/api/orders/active-by-table/' + id).then(res => res.json()).then(order => {
+                    if (!order.customerName || order.customerName.trim() === "") {
+                        if (typeof showWarning === "function") showWarning("BÀN CHƯA CÓ KHÁCH!", "Bàn này đang mở nhưng khách chưa nhập tên. Bạn có thể xem mã hóa đơn, nhưng chưa thể thêm món cho đến khi khách đăng nhập.");
+                    }
+                    window.currentOpenOrderId = order.orderId;
+
+                    if(waiterStompClient && waiterStompClient.connected) {
+                        if (currentOrderSubscription) currentOrderSubscription.unsubscribe();
+                        currentOrderSubscription = waiterStompClient.subscribe('/topic/order/' + order.orderId, function(message) {
+                            // Cập nhật khi Đầu Bếp Hoặc Khách có tương tác
+                            if (message.body === "ITEM_STATUS_UPDATED" || message.body === "CUSTOMER_UPDATE") {
+                                if(typeof loadOrderDetails === "function" && document.getElementById('orderInterfaceModal').classList.contains('show')) {
+                                    loadOrderDetails(order.orderId); // Tải lại chi tiết món âm thầm
+                                }
+                            }
+                        });
+                    }
+                    if (typeof openOrderInterface === "function") openOrderInterface(id, order.orderId, name);
+                });
+            }
+        }
+        function searchTables() {
+            const keyword = document.getElementById('searchTableInput').value.trim();
+            const status = document.getElementById('filterTableStatus').value;
+
+            let url = '/waiter/api/tables/content?';
+            if (keyword) url += `keyword=${encodeURIComponent(keyword)}&`;
+            if (status) url += `status=${status}`;
+
+            // Gọi lại hàm load của trang Waiter chính để tải lại lưới bàn
+            if (typeof loadWaiterModule === 'function') {
+                loadWaiterModule('/waiter/tables', url, document.getElementById('nav-tables'));
+            }
+        }
+
+        // Bắt sự kiện nhấn Enter ở ô tìm kiếm
+        document.getElementById('searchTableInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') searchTables();
+        });
+    </script>
+</div>

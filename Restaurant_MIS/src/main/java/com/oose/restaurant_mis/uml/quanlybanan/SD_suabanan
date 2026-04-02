@@ -1,0 +1,43 @@
+@startuml
+actor Admin
+participant "TableAdminController" as TAC
+participant "DiningTableService" as DTS
+participant "DiningTableRepository" as DTR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> TAC: POST /admin/api/tables/save (tableId)
+activate TAC
+
+TAC -> DTS: getById(tableId)
+activate DTS
+DTS -> DTR: findById(tableId)
+DTR -> DB: SELECT * FROM restaurant_tables WHERE table_id = ?
+DB --> DTR: oldTable
+DTR --> DTS: oldTable
+DTS --> TAC: oldTable
+deactivate DTS
+
+alt oldTable.status == OCCUPIED && newStatus != OCCUPIED
+  TAC --> Admin: "Bàn đang có hóa đơn chưa thanh toán, không thể chuyển đổi trạng thái!"
+else
+  TAC -> DTS: save(table)
+  activate DTS
+  DTS -> DTR: save(table)
+  DTR -> DB: UPDATE restaurant_tables SET ... WHERE table_id = ?
+  DB --> DTR: updated
+  DTR --> DTS: updatedTable
+  DTS --> TAC: done
+  deactivate DTS
+
+  TAC -> AS: log(user, "UPDATE", "DiningTable", tableId, oldTable, updatedTable)
+  activate AS
+  AS -> DB: INSERT INTO audit_logs (old_value, new_value)
+  DB --> AS: log saved
+  AS --> TAC: done
+  deactivate AS
+
+  TAC --> Admin: "success"
+end
+deactivate TAC
+@enduml

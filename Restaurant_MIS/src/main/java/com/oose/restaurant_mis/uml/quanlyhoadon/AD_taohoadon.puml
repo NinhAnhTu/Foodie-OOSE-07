@@ -1,0 +1,35 @@
+@startuml
+start
+:Admin / Waiter chọn một Bàn Trống (EMPTY);
+:Bấm nút "Mở bàn";
+
+:Frontend gửi Request tạo hóa đơn\n(kèm tableId);
+
+note right
+  **Backend Processing (OrderService)**
+end note
+
+:Truy xuất thông tin Bàn (DiningTable) từ DB;
+:Kiểm tra xem Bàn này có Đặt bàn (Reservation) \nđang ở trạng thái CONFIRMED không?;
+
+if (Có Đặt bàn trước?) then (Có)
+  :Lấy Tên khách hàng từ Đặt bàn;
+  :Cập nhật Reservation.status = DONE;
+  :Lưu Reservation xuống Database;
+else (Không)
+  :Để trống Tên khách hàng (Khách vãng lai);
+endif
+
+:Khởi tạo đối tượng Hóa đơn (Order) mới: \n- status = OPEN \n- totalAmount = 0;
+:Gán Bàn (DiningTable) vào Order;
+:Lưu Hóa đơn (Order) xuống Database;
+
+:Cập nhật trạng thái Bàn: table.status = OCCUPIED;
+:Lưu thông tin Bàn xuống Database;
+
+:Controller gửi tín hiệu WebSocket "UPDATE_TABLE_MAP";
+:Trả về kết quả "success";
+
+:Giao diện Frontend tải lại sơ đồ bàn \n(Bàn chuyển sang màu đỏ - Có khách);
+stop
+@enduml

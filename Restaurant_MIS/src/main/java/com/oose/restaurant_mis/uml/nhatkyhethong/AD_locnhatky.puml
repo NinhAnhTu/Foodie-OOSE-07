@@ -1,0 +1,17 @@
+@startuml
+title Activity Diagram - Lọc nhật ký hệ thống
+
+|Quản trị viên|
+start
+:Truy cập trang Nhật ký hệ thống;
+:Chọn ngày cần lọc;
+:Nhấn nút "Tìm kiếm/Lọc";
+
+|Giao diện|
+:Hiển thị danh sách nhật ký theo ngày đã chọn;
+
+|Quản trị viên|
+:Xem danh sách kết quả;
+
+stop
+@enduml

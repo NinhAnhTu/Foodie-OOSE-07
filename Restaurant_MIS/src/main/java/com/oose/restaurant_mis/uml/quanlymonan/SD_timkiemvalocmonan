@@ -1,0 +1,32 @@
+@startuml
+actor Admin
+participant "DishAdminController" as DAC
+participant "MenuItemService" as MIS
+participant "MenuItemRepository" as MIR
+participant "Database" as DB
+
+Admin -> DAC: GET /admin/api/dishes/content?keyword=...&categoryId=...&page=0
+activate DAC
+
+DAC -> MIS: searchDishes(keyword, categoryId, page, size)
+activate MIS
+
+alt keyword && categoryId
+  MIS -> MIR: findByNameContainingIgnoreCaseAndCategory_CategoryId(keyword, categoryId, Pageable)
+else keyword
+  MIS -> MIR: findByNameContainingIgnoreCase(keyword, Pageable)
+else categoryId
+  MIS -> MIR: findByCategory_CategoryId(categoryId, Pageable)
+else
+  MIS -> MIR: findAll(Pageable)
+end
+
+MIR -> DB: (truy vấn SQL với điều kiện)
+DB --> MIR: list menu_items
+MIR --> MIS: Page<MenuItem>
+MIS --> DAC: page
+deactivate MIS
+
+DAC --> Admin: dishes.html fragment
+deactivate DAC
+@enduml

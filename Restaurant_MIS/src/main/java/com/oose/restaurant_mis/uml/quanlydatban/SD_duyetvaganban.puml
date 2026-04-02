@@ -1,0 +1,41 @@
+@startuml
+autonumber
+actor Admin
+boundary "reservations.html" as View
+control "ReservationAdminController" as Controller
+participant "ReservationService" as ResService
+participant "DiningTableService" as TableService
+participant "EmailService" as EmailService
+boundary "WebSocket (/topic/tables)" as Socket
+
+Admin -> View: Chọn bàn và bấm "Duyệt"
+View -> Controller: POST /admin/api/reservations/accept\n(reservationId, tableId)
+
+Controller -> ResService: findById(reservationId)
+ResService --> Controller: Trả về Reservation (Pending)
+
+Controller -> TableService: getById(tableId)
+TableService --> Controller: Trả về DiningTable
+
+Controller -> Controller: Kiểm tra table.getStatus() == EMPTY?
+alt Bàn không trống (Trạng thái khác EMPTY)
+    Controller --> View: HTTP 400 (Bàn đã được gán!)
+else Bàn trống hợp lệ
+    Controller -> Controller: Gán Table vào Reservation\nĐổi trạng thái -> CONFIRMED
+    Controller -> ResService: save(reservation)
+
+    Controller -> Controller: Đổi trạng thái Table -> RESERVED
+    Controller -> TableService: save(table)
+
+    alt Có địa chỉ Email
+        Controller -> EmailService: sendConfirmationEmail(email, tên, giờ, tên bàn)
+        EmailService --> Controller: Hoàn tất gửi
+    end
+
+    Controller -> Socket: convertAndSend("UPDATE_TABLE_MAP")
+    Controller -> Socket: convertAndSend("RESERVATION_CONFIRMED|Tên Bàn")
+
+    Controller --> View: HTTP 200 OK ("success")
+    View -> View: Tải lại trang/Hiển thị thông báo
+end
+@enduml

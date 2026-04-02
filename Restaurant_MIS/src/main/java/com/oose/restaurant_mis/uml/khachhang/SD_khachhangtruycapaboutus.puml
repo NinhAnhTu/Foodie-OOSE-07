@@ -1,0 +1,18 @@
+@startuml
+title Sequence Diagram - Xem About Us
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "home.html" as View
+control "HomeController" as Controller
+
+Customer -> View: Chọn "About us"
+View -> Controller: GET /about
+
+activate Controller
+Controller --> View: home.html(activePage='about')
+deactivate Controller
+
+View --> Customer: Hiển thị giới thiệu
+
+@enduml

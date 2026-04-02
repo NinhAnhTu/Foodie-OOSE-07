@@ -1,0 +1,42 @@
+@startuml
+title Use Case Diagram - Xác thực và Phân quyền
+
+actor "Người dùng (Nhân viên)" as User
+actor "Admin" as Admin
+actor "Waiter" as Waiter
+actor "Chef" as Chef
+
+Admin --|> User
+Waiter --|> User
+Chef --|> User
+
+package "Hệ thống Xác thực" {
+    usecase "Đăng nhập" as UC_Login
+    usecase "Đăng xuất" as UC_Logout
+    usecase "Quên mật khẩu" as UC_ForgotPwd
+    usecase "Khôi phục mật khẩu (Email)" as UC_ResetPwd
+    usecase "Kiểm tra phiên làm việc (Session)" as UC_Session
+}
+
+package "Hệ thống Phân quyền" {
+    usecase "Truy cập Dashboard Admin" as UC_AdminAccess
+    usecase "Truy cập Màn hình Order (Waiter)" as UC_WaiterAccess
+    usecase "Truy cập Màn hình Chế biến (Chef)" as UC_ChefAccess
+    usecase "Kiểm soát quyền truy cập (Interceptor)" as UC_Interceptor
+}
+
+User --> UC_Login
+User --> UC_Logout
+User --> UC_ForgotPwd
+User --> UC_ResetPwd
+
+Admin --> UC_AdminAccess
+Waiter --> UC_WaiterAccess
+Chef --> UC_ChefAccess
+
+UC_AdminAccess ..> UC_Interceptor : <<include>>
+UC_WaiterAccess ..> UC_Interceptor : <<include>>
+UC_ChefAccess ..> UC_Interceptor : <<include>>
+UC_Interceptor ..> UC_Session : <<include>>
+
+@enduml

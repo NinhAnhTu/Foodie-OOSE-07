@@ -1,0 +1,39 @@
+@startuml
+start
+:Admin nhập Từ khóa / Chọn ngày / Đổi trạng thái;
+:Kích hoạt sự kiện onChange hoặc ấn Enter;
+:Frontend gọi hàm changePage(0);
+
+:Thu thập các tham số bộ lọc từ Form HTML\n(keyword, startDate, endDate, isActive);
+:Dùng Fetch gửi GET /content?keyword=...&startDate=...;
+
+note right
+  **Backend Processing**
+end note
+
+:Controller tiếp nhận Request;
+if (Tham số startDate / endDate có giá trị?) then (Có)
+  :Parse từ String sang kiểu LocalDate;
+else (Không)
+  :Để giá trị null;
+endif
+
+:Gọi DiscountService.searchDiscounts();
+
+:Service chuyển đổi LocalDate sang LocalDateTime:\n- start: Từ 00:00:00 (atStartOfDay)\n- end: Đến 23:59:59 (atTime.MAX);
+
+:DiscountRepository thực thi @Query lọc động;
+:Truy vấn Database và trả về danh sách phân trang (Page<Discount>);
+
+:Controller gán dữ liệu Page<Discount> vào Model;
+:Controller gán NGƯỢC LẠI các tham số lọc \nvào Model (keyword, startDate, ...);
+
+note right
+  Việc này giúp Thymeleaf hiển thị lại
+  đúng trạng thái Admin vừa nhập.
+end note
+
+:Controller render fragment Thymeleaf (admin/discounts :: content);
+:Frontend nhận HTML và thay thế nội dung bảng;
+stop
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+actor Admin
+participant "StaffAdminController" as SAC
+participant "StaffService" as SS
+participant "UserRepository" as UR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> SAC: POST /admin/api/staff/save\n(form data with userId)
+activate SAC
+
+SAC -> SS: save(user)
+activate SS
+
+SS -> UR: findById(userId)
+UR -> DB: SELECT * FROM users WHERE id = userId
+DB --> UR: record
+UR --> SS: oldUser
+
+SS -> UR: existsByUsernameAndUserIdNot(...)
+UR -> DB: SELECT COUNT(*) ...
+DB --> UR: 0
+UR --> SS: false
+
+SS -> UR: existsByEmailAndUserIdNot(...)
+UR -> DB: SELECT COUNT(*) ...
+DB --> UR: 0
+UR --> SS: false
+
+SS -> UR: save(user)
+UR -> DB: UPDATE users SET ...
+DB --> UR: updated row
+UR --> SS: updatedUser
+
+SS -> AS: log(admin, "UPDATE", "User", userId, oldUser, updatedUser)
+activate AS
+AS -> DB: INSERT INTO audit_logs
+DB --> AS: log saved
+AS --> SS: done
+deactivate AS
+
+SS --> SAC: success
+deactivate SS
+
+SAC -> Admin: "success" (HTTP 200)
+deactivate SAC
+@enduml

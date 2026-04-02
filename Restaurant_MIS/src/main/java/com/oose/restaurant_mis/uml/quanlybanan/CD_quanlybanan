@@ -1,0 +1,117 @@
+@startuml
+' ================== DEFINE ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(DiningTable) {
+  - tableId: Integer
+  - tableName: String
+  - tableCode: String
+  - capacity: Integer
+  - status: TableStatus
+  - zone: String
+  + hasPendingPayment: Boolean (transient)
+  + getters/setters
+}
+
+enum TableStatus {
+  EMPTY
+  OCCUPIED
+  RESERVED
+}
+
+entity(Reservation) {
+  - reservationId: Integer
+  - customerName: String
+  - phone: String
+  - email: String
+  - guestCount: Integer
+  - reservationTime: LocalDateTime
+  - note: String
+  - status: ReservationStatus
+  + getters/setters
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  DONE
+}
+
+entity(AuditLog) {
+  - logId: Integer
+  - user: User
+  - action: String
+  - tableName: String
+  - recordId: Integer
+  - oldValue: String
+  - newValue: String
+  - createdAt: LocalDateTime
+  + getters/setters
+}
+
+' ================== CONTROLLER ==================
+controller(TableAdminController) {
+  + getContent(page, size, keyword, status, capacity, Model): String
+  + save(table, HttpSession): ResponseEntity
+  + edit(id): DiningTable
+  + delete(id, HttpSession): ResponseEntity
+  + getTableReservation(id): Reservation
+}
+
+' ================== SERVICE ==================
+service(DiningTableService) {
+  + getTablesPage(page, size): Page
+  + searchTables(code, status, capacity, page, size): Page
+  + getAllTables(): List
+  + getById(id): DiningTable
+  + save(table): void
+  + delete(id): void
+}
+
+service(ReservationService) {
+  + findActiveReservationByTable(tableId): Reservation
+  + save(reservation): void
+  + findById(id): Reservation
+}
+
+service(AuditService) {
+  + log(user, action, tableName, recordId, oldValue, newValue): void
+}
+
+' ================== REPOSITORY ==================
+repository(DiningTableRepository) {
+  + findAll(Pageable): Page
+  + searchTables(code, status, capacity, Pageable): Page
+  + findById(id): Optional
+  + deleteById(id): void
+}
+
+repository(ReservationRepository) {
+  + findTopByTable_TableIdAndStatusOrderByCreatedAtDesc(tableId, status): Reservation
+  + findById(id): Optional
+}
+
+repository(AuditLogRepository) {
+  + save(AuditLog): AuditLog
+}
+
+' ================== RELATION ==================
+TableAdminController --> DiningTableService
+TableAdminController --> ReservationService
+TableAdminController --> AuditService
+
+DiningTableService --> DiningTableRepository
+ReservationService --> ReservationRepository
+AuditService --> AuditLogRepository
+
+DiningTableRepository ..> DiningTable
+ReservationRepository ..> Reservation
+AuditLogRepository ..> AuditLog
+
+DiningTable "1" -- "0..1" Reservation : has
+@enduml

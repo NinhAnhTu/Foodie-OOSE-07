@@ -1,0 +1,40 @@
+@startuml
+title Activity Diagram - Đăng nhập và Phân quyền truy cập
+skinparam ActivityFontSize 14
+skinparam ArrowFontSize 12
+
+start
+
+:Nhân viên nhập Username và Password;
+:Hệ thống (AuthService) tìm User trong Database;
+
+if (Tìm thấy User?) then (Có)
+    if (Trạng thái hoạt động?) then (Đang hoạt động)
+        if (Mật khẩu khớp?) then (Khớp)
+            :Khởi tạo Session (Lưu thông tin User);
+            :Xác định vai trò (Role: ADMIN, WAITER, CHEF);
+
+            if (Vai trò là gì?) then (ADMIN)
+                :Chuyển hướng đến /admin/dashboard;
+            elseif (WAITER) then
+                :Chuyển hướng đến /waiter;
+            else (CHEF)
+                :Chuyển hướng đến /chef;
+            endif
+
+            :Hiển thị giao diện tương ứng;
+        else (Sai)
+            :Thông báo: "Sai tên đăng nhập hoặc mật khẩu!";
+            detach
+        endif
+    else (Bị khóa)
+        :Thông báo: "Tài khoản bị khóa!";
+        detach
+    endif
+else (Không)
+    :Thông báo: "Sai tên đăng nhập hoặc mật khẩu!";
+    detach
+endif
+
+stop
+@enduml

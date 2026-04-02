@@ -1,0 +1,38 @@
+@startuml
+title Sequence Diagram - Truy cập Trang chủ
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "home.html" as View
+control "HomeController" as Controller
+participant "MenuItemService" as DishService
+participant "MenuItemRepository" as DishRepo
+database "Database" as DB
+
+Customer -> View: Truy cập "/"
+View -> Controller: GET /
+activate Controller
+
+Controller -> DishService: getAllMenuItems()
+activate DishService
+
+DishService -> DishRepo: findAll()
+activate DishRepo
+
+DishRepo -> DB: SELECT * FROM menu_items
+activate DB
+DB --> DishRepo: List<MenuItem>
+deactivate DB
+
+DishRepo --> DishService
+deactivate DishRepo
+
+DishService --> Controller
+deactivate DishService
+
+Controller --> View: home.html
+deactivate Controller
+
+View --> Customer: Hiển thị trang chủ
+
+@enduml

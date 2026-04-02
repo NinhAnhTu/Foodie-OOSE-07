@@ -1,0 +1,44 @@
+@startuml
+title Sequence Diagram - Kiểm tra phiên làm việc (Session) và Phân quyền (Interceptor)
+autonumber
+
+actor "Người dùng" as User
+boundary "Web Browser" as Browser
+control "AuthInterceptor" as Interceptor
+control "HomeController / AdminController" as Controller
+participant "HttpSession" as Session
+
+' Luồng kiểm tra khi truy cập bất kỳ tài nguyên được bảo mật
+User -> Browser: Truy cập URL được bảo mật (VD: /admin/dashboard)
+Browser -> Interceptor: HTTP GET /admin/dashboard
+activate Interceptor
+
+' 1. Kiểm tra Session (Phiên làm việc)
+Interceptor -> Session: getAttribute("loggedInUser")
+activate Session
+Session --> Interceptor: User Object (hoặc null)
+deactivate Session
+
+alt #LightPink Phiên làm việc không tồn tại (Session null)
+    Interceptor -> Browser: Redirect to /auth/login
+    Browser -> User: Hiển thị trang đăng nhập
+else #LightGreen Phiên làm việc hợp lệ (User exists)
+    ' 2. Kiểm tra Phân quyền (Authorization)
+    Interceptor -> Interceptor: checkRole(user.role, request.uri)
+
+    alt #LightGreen Có quyền truy cập
+        Interceptor -> Controller: handleRequest()
+        activate Controller
+        Controller --> Interceptor: ViewName
+        deactivate Controller
+        Interceptor --> Browser: Return HTML content
+        Browser -> User: Hiển thị giao diện trang
+    else #LightPink Sai quyền truy cập (Role mismatch)
+        Interceptor -> Browser: Redirect to /auth/login?error=access_denied
+        Browser -> User: Hiển thị thông báo "Bạn không có quyền!"
+    end
+end
+
+deactivate Interceptor
+
+@enduml

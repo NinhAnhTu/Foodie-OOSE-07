@@ -1,0 +1,47 @@
+@startuml
+actor Admin
+participant "DishAdminController" as DAC
+participant "MenuItemService" as MIS
+participant "MenuItemRepository" as MIR
+participant "FileSystem" as FS
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> DAC: POST /admin/api/dishes/save\n(itemId, form data)
+activate DAC
+
+DAC -> DAC: kiểm tra giá không âm
+DAC -> MIS: getById(itemId) (lấy dữ liệu cũ)
+activate MIS
+MIS -> MIR: findById(itemId)
+MIR -> DB: SELECT * FROM menu_items WHERE item_id = ?
+DB --> MIR: oldItem
+MIR --> MIS: oldItem
+MIS --> DAC: oldItem
+deactivate MIS
+
+alt có ảnh mới
+  DAC -> FS: xóa ảnh cũ (nếu tồn tại)
+  DAC -> FS: lưu ảnh mới
+  FS --> DAC: new imageUrl
+end
+
+DAC -> MIS: save(menuItem) (đã set imageUrl)
+activate MIS
+MIS -> MIR: save(menuItem)
+MIR -> DB: UPDATE menu_items SET ... WHERE item_id = ?
+DB --> MIR: updated
+MIR --> MIS: updatedItem
+MIS --> DAC: done
+deactivate MIS
+
+DAC -> AS: log(user, "UPDATE", "MenuItem", id, oldItem, updatedItem)
+activate AS
+AS -> DB: INSERT INTO audit_logs (old_value, new_value, ...)
+DB --> AS: log saved
+AS --> DAC: done
+deactivate AS
+
+DAC --> Admin: "success"
+deactivate DAC
+@enduml

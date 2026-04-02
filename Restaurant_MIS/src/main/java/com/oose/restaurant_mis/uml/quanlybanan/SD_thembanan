@@ -1,0 +1,32 @@
+@startuml
+actor Admin
+participant "TableAdminController" as TAC
+participant "DiningTableService" as DTS
+participant "DiningTableRepository" as DTR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> TAC: POST /admin/api/tables/save
+activate TAC
+
+TAC -> DTS: save(table)
+activate DTS
+DTS -> DTR: save(table)
+activate DTR
+DTR -> DB: INSERT INTO restaurant_tables (table_name, table_code, capacity, status, zone)
+DB --> DTR: generated table_id
+DTR --> DTS: savedTable
+deactivate DTR
+DTS --> TAC: done
+deactivate DTS
+
+TAC -> AS: log(user, "CREATE", "DiningTable", savedTable.tableId, null, savedTable)
+activate AS
+AS -> DB: INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value)
+DB --> AS: log saved
+AS --> TAC: done
+deactivate AS
+
+TAC --> Admin: "success" (HTTP 200)
+deactivate TAC
+@enduml

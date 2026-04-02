@@ -1,0 +1,31 @@
+@startuml
+title Activity Diagram - Xem danh sách món đã hủy (Chef Dashboard)
+
+|Hệ thống (WebSocket)|
+start
+:Nhận message "ITEM_REMOVED|orderId|itemName";
+:Tách chuỗi lấy thông tin orderId và itemName;
+if (Kiểm tra orderId trong cancelledItemsMap?) then (Chưa có)
+    :Khởi tạo mảng rỗng cho orderId;
+else (Đã có)
+endif
+:Push itemName vào cancelledItemsMap[orderId];
+:Hiển thị chấm đỏ (cancel-dot) cạnh bàn tương ứng;
+stop
+
+|Người dùng (Đầu bếp)|
+start
+:Quan sát thấy chấm đỏ cạnh bàn;
+:Click vào chấm đỏ (cancel-dot);
+
+|Giao diện (Frontend)|
+:Gọi hàm showCancelledItems(orderId);
+:Truy xuất danh sách món từ cancelledItemsMap[orderId];
+:Tạo nội dung HTML hiển thị danh sách món;
+:Render vào thẻ #chefCancelBody;
+:Hiển thị Modal danh sách món đã hủy;
+
+|Người dùng (Đầu bếp)|
+:Xem danh sách và đóng Modal;
+stop
+@enduml

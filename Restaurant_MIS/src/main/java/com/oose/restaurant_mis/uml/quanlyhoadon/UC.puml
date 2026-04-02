@@ -1,0 +1,66 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+' Tùy chỉnh màu sắc cho Actor để dễ phân biệt
+skinparam actor {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+}
+
+actor "Khách hàng\n(Customer)" as Customer
+actor "Đầu bếp\n(Chef)" as Chef
+actor "Nhân viên phục vụ\n(Waiter)" as Waiter
+actor "Quản trị viên\n(Admin)" as Admin
+
+' Admin kế thừa toàn bộ quyền thao tác đơn hàng của Waiter
+Admin -|> Waiter : <<Kế thừa quyền>>
+
+package "Hệ thống Quản lý Hóa đơn & Bàn ăn" {
+
+  ' Use case của Khách hàng
+  usecase "Quản lý Giỏ hàng (Thêm món, Sửa ghi chú)" as UC_Cart
+  usecase "Xác nhận Gọi món" as UC_PlaceOrder
+  usecase "Gửi Yêu cầu Tính tiền" as UC_RequestPay
+
+  ' Use case của Đầu bếp
+  usecase "Theo dõi màn hình Bếp" as UC_KitchenView
+  usecase "Cập nhật Trạng thái Món\n(Đang nấu / Hoàn tất)" as UC_CookStatus
+
+  ' Use case của Waiter (và Admin)
+  usecase "Mở bàn (Tạo Hóa đơn)" as UC_OpenTable
+  usecase "Thêm món trực tiếp vào đơn" as UC_AddItem
+  usecase "Giảm số lượng / Xóa món" as UC_RemoveItem
+  usecase "In Hóa đơn & Sinh QR" as UC_Print
+  usecase "Xác nhận Thanh toán\n(Tính chiết khấu & Đóng bàn)" as UC_Pay
+  usecase "Hủy Hóa đơn (Bàn trống)" as UC_Cancel
+
+  ' Use case riêng của Admin (Ví dụ: xem toàn bộ danh sách)
+  usecase "Theo dõi & Lọc danh sách Hóa đơn" as UC_ManageOrders
+}
+
+' Liên kết Khách hàng
+Customer --> UC_Cart
+Customer --> UC_PlaceOrder
+Customer --> UC_RequestPay
+
+' Liên kết Đầu bếp
+Chef --> UC_KitchenView
+Chef --> UC_CookStatus
+
+' Liên kết Waiter
+Waiter --> UC_OpenTable
+Waiter --> UC_AddItem
+Waiter --> UC_RemoveItem
+Waiter --> UC_Print
+Waiter --> UC_Pay
+Waiter --> UC_Cancel
+
+' Liên kết Admin
+Admin --> UC_ManageOrders
+
+' Thể hiện sự tương tác ngầm (Ví dụ: Khách gọi món thì Waiter/Chef cũng nhận được thông báo)
+UC_PlaceOrder .> UC_KitchenView : <<trigger WebSocket>>
+UC_RequestPay .> UC_ManageOrders : <<trigger WebSocket>>
+
+@enduml

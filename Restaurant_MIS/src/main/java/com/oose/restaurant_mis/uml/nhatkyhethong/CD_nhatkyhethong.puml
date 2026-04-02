@@ -1,0 +1,65 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+title Class Diagram - Audit Log Management Component (Updated Style)
+
+' ================== DEFINE MACROS ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(AuditLog) {
+    - logId : Integer
+    - user : User
+    - action : String
+    - tableName : String
+    - recordId : Integer
+    - oldValue : String
+    - newValue : String
+    - createdAt : LocalDateTime
+    + getters/setters()
+}
+
+entity(User) {
+    - userId : Integer
+    - username : String
+    - role : Role
+    + getters/setters()
+}
+
+' ================== CONTROLLER ==================
+controller(AuditAdminController) {
+    + listLogs(page : int, model : Model) : String
+    + searchLogs(dateStr : String, page : int, model : Model) : String
+}
+
+' ================== SERVICE ==================
+service(AuditService) {
+    - objectMapper : ObjectMapper
+    + log(user : User, action : String, table : String, recordId : int, oldVal : Object, newVal : Object) : void
+    + getLogsPage(page : int, size : int) : Page
+    + searchLogsByDate(dateStr : String, page : int, size : int) : Page
+}
+
+' ================== REPOSITORY ==================
+repository(AuditLogRepository) {
+    + findAllByOrderByCreatedAtDesc(pageable : Pageable) : Page
+    + searchLogs(userId : Integer, action : String, tableName : String, start : LocalDateTime, end : LocalDateTime, pageable : Pageable) : Page
+}
+
+' ================== RELATIONSHIPS ==================
+' Controller -> Service (Nét liền)
+AuditAdminController --> AuditService
+
+' Service -> Repository (Nét liền)
+AuditService --> AuditLogRepository
+
+' Repository -> Entity (Nét đứt)
+AuditLogRepository ..> AuditLog
+
+' Quan hệ nội bộ thực thể
+AuditLog "many" o-- "1" User : thực hiện bởi >
+
+@enduml

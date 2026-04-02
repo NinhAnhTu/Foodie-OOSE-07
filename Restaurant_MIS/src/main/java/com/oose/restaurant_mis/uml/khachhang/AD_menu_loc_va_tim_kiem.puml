@@ -1,0 +1,32 @@
+   @startuml
+title Activity Diagram - Xem Menu, Lọc món và Tìm kiếm
+skinparam ActivityFontSize 14
+skinparam ArrowFontSize 12
+
+start
+
+:Khách hàng truy cập vào Trang chủ / Menu;
+
+    :Hiển thị danh sách tất cả món ăn mặc định;
+    :Hiển thị thanh tìm kiếm và danh mục món;
+
+split
+    :Khách hàng nhập từ khóa tìm kiếm;
+    :Bấm biểu tượng Tìm kiếm / Enter;
+split again
+    :Khách hàng chọn một Danh mục món;
+    :(Ví dụ: Món Khai vị, Món Chính, Đồ uống);
+end split
+
+
+
+    if (Có kết quả?) then (Có)
+        :Cập nhật danh sách món ăn trên màn hình;
+        :Hiển thị hình ảnh, tên, giá và mô tả món;
+    else (Không)
+        :Hiển thị thông báo "Không tìm thấy món ăn phù hợp";
+    endif
+
+
+stop
+@enduml

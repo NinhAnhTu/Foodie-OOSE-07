@@ -1,0 +1,42 @@
+@startuml
+autonumber
+actor "Khách hàng (Customer)" as Customer
+boundary "Điện thoại Khách\n(table-bill.html)" as View
+control "CustomerOrderController" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket (/topic)" as Socket
+
+Customer -> View: Bấm "Gọi tính tiền" & Xác nhận
+View -> Controller: POST /table/api/checkout
+
+Controller -> Controller: Lấy customerOrderId từ Session
+
+Controller -> Service: getById(orderId)
+Service -> DB: Tìm Order theo ID
+DB --> Service: Trả về Order
+Service --> Controller: Trả về Order
+
+Controller -> DB: detailRepository.findByOrder_OrderId(orderId)
+DB --> Controller: Trả về List<OrderDetail>
+
+loop Duyệt qua từng OrderDetail trong danh sách
+    alt detail.servedStatus != SERVED
+        Controller --> View: Trả về chuỗi Lỗi ("Chưa thể thanh toán! Vui lòng đợi...")
+        View --> Customer: Hiển thị popup Cảnh báo (showCustomerNotice)
+    end
+end
+
+note right of Controller: Nếu tất cả các món đều đã SERVED
+Controller -> Controller: order.setStatus(PENDING_PAYMENT)
+Controller -> Service: save(order)
+Service -> DB: Lưu Order cập nhật
+DB --> Service: Thành công
+
+Controller -> Controller: Lấy tableName từ order.getTable()
+Controller -> Socket: convertAndSend("/topic/tables", "CHECKOUT_REQUEST|" + tableName)
+note right: Kích hoạt chấm đỏ nhấp nháy\nhoặc chuông trên màn hình Waiter/Admin
+
+Controller --> View: Trả về chuỗi "success"
+View --> Customer: Hiển thị popup Thành công ("Đã gửi yêu cầu...")
+@enduml

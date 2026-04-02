@@ -1,0 +1,28 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Khách hàng (Customer)" as Customer
+actor "Quản trị viên (Admin)" as Admin
+
+package "Hệ thống quản lý đặt bàn" {
+  usecase "Gửi yêu cầu đặt bàn" as UC_Book
+  usecase "Xem danh sách đặt bàn" as UC_View
+  usecase "Duyệt & Gán bàn" as UC_Accept
+  usecase "Từ chối đặt bàn" as UC_Reject
+  usecase "Xem số lượng đơn chờ" as UC_Count
+
+  usecase "Gửi Email thông báo" as UC_Email
+  usecase "Cập nhật sơ đồ bàn (Real-time)" as UC_Socket
+}
+
+Customer --> UC_Book
+Admin --> UC_View
+Admin --> UC_Accept
+Admin --> UC_Reject
+Admin --> UC_Count
+
+UC_Accept ..> UC_Email : <<include>>
+UC_Reject ..> UC_Email : <<include>>
+UC_Accept ..> UC_Socket : <<include>>
+@enduml

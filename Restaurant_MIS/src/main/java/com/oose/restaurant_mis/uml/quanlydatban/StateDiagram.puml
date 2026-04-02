@@ -1,0 +1,24 @@
+@startuml
+skinparam state {
+  BackgroundColor LightGreen
+  BorderColor DarkGreen
+}
+
+hide empty description
+
+state "PENDING (Đang chờ duyệt)" as Pending
+state "CONFIRMED (Đã xác nhận & Gán bàn)" as Confirmed
+state "CANCELLED (Đã hủy)" as Cancelled
+state "DONE (Đã hoàn thành)" as Done
+
+[*] --> Pending : Khách hàng gửi form\n[home.html]
+
+Pending --> Confirmed : Admin Duyệt (Accept)\n[Gán bàn và gửi Email]
+Pending --> Cancelled : Admin Từ chối (Reject)\n[Nhập lý do và gửi Email]
+
+Confirmed --> Cancelled : Admin Hủy ngang\n[Gọi cancelReservationByTable()]
+Confirmed --> Done : Khách ăn xong & Thanh toán\n[Logic hóa đơn (suy luận)]
+
+Cancelled --> [*]
+Done --> [*]
+@enduml

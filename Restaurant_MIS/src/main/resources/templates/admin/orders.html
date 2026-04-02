@@ -1,0 +1,439 @@
+<div th:fragment="content">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h3 class="fw-bold text-dark mb-1">Quản lý hóa đơn</h3>
+            <p class="text-muted small mb-0">Lịch sử giao dịch và đơn hàng hiện tại</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <input type="date" id="filterOrderDate" class="form-control rounded-pill shadow-sm border text-muted fw-bold" style="width: 160px;" th:value="${searchDate}" onchange="searchOrder()">
+
+            <select id="filterOrderStatus" class="form-select rounded-pill shadow-sm border" style="width: 150px;" onchange="searchOrder()">
+                <option value="">Tất cả</option>
+                <option value="OPEN" th:selected="${selectedStatus != null and selectedStatus.name() == 'OPEN'}">Đang phục vụ</option>
+                <option value="PENDING_PAYMENT" th:selected="${selectedStatus != null and selectedStatus.name() == 'PENDING_PAYMENT'}">Chờ thanh toán</option>
+                <option value="PAID" th:selected="${selectedStatus != null and selectedStatus.name() == 'PAID'}">Đã thanh toán</option>
+                <option value="CANCELLED" th:selected="${selectedStatus != null and selectedStatus.name() == 'CANCELLED'}">Đã hủy</option>
+            </select>
+
+            <div class="input-group bg-white rounded-pill shadow-sm border overflow-hidden" style="width: 220px;">
+                <span class="input-group-text bg-white border-0 text-muted ps-3"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchOrderInput" class="form-control border-0 shadow-none bg-white" placeholder="Tên khách" th:value="${keyword}">
+                <button class="btn btn-white border-0 text-primary fw-bold pe-3" onclick="searchOrder()">Tìm</button>
+            </div>
+
+            <button class="btn btn-light rounded-pill border shadow-sm" onclick="resetFilters()" title="Làm mới bộ lọc"><i class="fas fa-sync-alt"></i></button>
+
+            <button class="btn btn-primary rounded-pill px-4 shadow-sm ms-2" onclick="openCreateOrderModal()">
+                <i class="fas fa-plus me-2"></i> Tạo HĐ mới
+            </button>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0" id="mainOrderTable">
+                <thead class="bg-light text-secondary small text-uppercase">
+                <tr>
+                    <th class="ps-4 py-3">Mã HĐ</th>
+                    <th>Bàn / Khách hàng</th>
+                    <th>Thành tiền</th>
+                    <th>Ngày lập</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end pe-4">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="o : ${orderPage.content}">
+                    <td class="ps-4 fw-bold text-primary" th:text="'#' + ${o.orderId}"></td>
+                    <td>
+                        <div class="fw-bold" th:text="${o.table.tableName}"></div>
+                        <div class="small text-muted" th:text="${o.customerName ?: 'Chưa quét menu'}"></div>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-dark" th:text="${#numbers.formatDecimal(o.totalAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></div>
+                        <div th:if="${o.discount != null}" class="small text-success"><i class="fas fa-tag"></i> Giảm <span th:text="${o.discount.discountPercent}"></span>%</div>
+                    </td>
+                    <td class="text-muted small" th:text="${#temporals.format(o.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td>
+                        <span th:if="${o.status.name() == 'OPEN'}" class="badge bg-secondary-subtle text-secondary px-3 border border-secondary-subtle rounded-pill">Đang phục vụ</span>
+                        <span th:if="${o.status.name() == 'PENDING_PAYMENT'}" class="badge bg-warning-subtle text-warning px-3 border border-warning-subtle rounded-pill">Chờ thanh toán</span>
+                        <span th:if="${o.status.name() == 'PAID'}" class="badge bg-success-subtle text-success px-3 border border-success-subtle rounded-pill">Đã thanh toán</span>
+                        <span th:if="${o.status.name() == 'CANCELLED'}" class="badge bg-danger-subtle text-danger px-3 border border-danger-subtle rounded-pill">Đã hủy</span>
+                    </td>
+                    <td class="text-end pe-4">
+                        <button class="btn btn-sm btn-light border text-primary"
+                                th:data-id="${o.orderId}"
+                                th:data-status="${o.status.name()}"
+                                onclick="openOrderDetails(this.getAttribute('data-id'), this.getAttribute('data-status'))">
+                            <i class="fas fa-eye"></i> Xem
+                        </button>
+
+                        <button th:if="${(o.status.name() == 'OPEN' || o.status.name() == 'PENDING_PAYMENT') && o.totalAmount > 0}"
+                                class="btn btn-sm btn-success ms-1"
+                                th:data-id="${o.orderId}"
+                                th:data-total="${o.totalAmount}"
+                                onclick="openPaymentModal(this.getAttribute('data-id'), parseFloat(this.getAttribute('data-total')))">
+                            <i class="fas fa-money-bill"></i> T.Toán
+                        </button>
+
+                        <button th:if="${(o.status.name() == 'OPEN' || o.status.name() == 'PENDING_PAYMENT') && (o.totalAmount == null || o.totalAmount == 0)}"
+                                class="btn btn-sm btn-outline-danger ms-1"
+                                th:data-id="${o.orderId}"
+                                onclick="confirmCancelOrder(this.getAttribute('data-id'))">
+                            <i class="fas fa-times"></i> Hủy HĐ
+                        </button>
+                    </td>
+                </tr>
+                <tr th:if="${orderPage.totalElements == 0}">
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="fas fa-search fa-2x mb-3 opacity-50"></i>
+                        <p class="mb-0">Không tìm thấy hóa đơn nào phù hợp.</p>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer bg-white border-top py-3" th:if="${orderPage.totalPages > 1}">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <li class="page-item" th:classappend="${currentPage == 0} ? 'disabled'"><a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage - 1} + ')'"><i class="fas fa-chevron-left"></i></a></li>
+                    <li class="page-item mx-1" th:each="i : ${#numbers.sequence(0, orderPage.totalPages - 1)}" th:classappend="${currentPage == i} ? 'active'"><a class="page-link rounded-circle shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${i} + ')'" th:text="${i + 1}"></a></li>
+                    <li class="page-item" th:classappend="${currentPage == orderPage.totalPages - 1} ? 'disabled'"><a class="page-link shadow-none" href="javascript:void(0)" th:onclick="'changePage(' + ${currentPage + 1} + ')'"><i class="fas fa-chevron-right"></i></a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <div class="modal fade" id="createOrderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas fa-plus-circle me-2"></i>Mở Hóa đơn mới</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4">
+                    <label class="form-label fw-bold">Chọn bàn phục vụ:</label>
+                    <select id="newOrderTable" class="form-select">
+                        <option th:each="t : ${tables}" th:value="${t.tableId}" th:text="${t.tableName} + ' (' + ${t.status.name()} + ')'" th:disabled="${t.status.name() != 'EMPTY'}"></option>
+                    </select>
+                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button><button type="button" class="btn btn-primary px-4" onclick="submitCreateOrder()">Tạo Hóa Đơn</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="cancelItemModal" tabindex="-1" style="z-index: 1065;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white"><h5 class="modal-title">Hủy món</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4 text-center">
+                    <label class="form-label fw-bold">Nhập số lượng muốn hủy:</label>
+                    <input type="number" id="cancelItemQty" class="form-control text-center fs-4 fw-bold" value="1" min="1">
+                    <input type="hidden" id="cancelDetailId">
+                </div>
+                <div class="modal-footer border-0 d-flex gap-2">
+                    <button class="btn btn-light w-100" data-bs-dismiss="modal">Đóng</button>
+                    <button class="btn btn-danger w-100 fw-bold" onclick="confirmCancelItem()">Hủy Món</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-dark text-white"><h5 class="modal-title"><i class="fas fa-file-invoice me-2"></i>Chi tiết HĐ <span id="detailOrderId" class="text-warning"></span></h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0 text-primary">Danh sách món</h6>
+                        <button id="btnOpenAddItem" class="btn btn-sm btn-outline-primary" onclick="openAddItemSection()"><i class="fas fa-plus"></i> Thêm món</button>
+                    </div>
+
+                    <div id="addItemSection" class="bg-light p-3 rounded border mb-3" style="display: none;">
+                        <div class="row g-2">
+                            <div class="col-8"><select id="menuItemSelect" class="form-select form-select-sm"></select></div>
+                            <div class="col-2"><input type="number" id="itemQty" class="form-control form-control-sm" value="1" min="1"></div>
+                            <div class="col-2"><button class="btn btn-sm btn-primary w-100" onclick="submitAddItem()">Thêm</button></div>
+                        </div>
+                    </div>
+
+                    <table class="table table-bordered text-center align-middle">
+                        <thead class="bg-light"><tr><th>Món ăn</th><th>Đơn giá</th><th>SL</th><th>Tổng</th><th>Thao tác</th></tr></thead>
+                        <tbody id="detailTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="fas fa-money-bill-wave me-2"></i>Thanh toán HĐ</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4">
+                    <h3 class="text-center text-success mb-4" id="payTotalAmount">0đ</h3>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã giảm giá (Nếu có):</label>
+                        <select id="payDiscountSelect" class="form-select" onchange="calculateFinalAmount()"><option value="" data-pct="0">-- Không áp dụng --</option></select>
+                    </div>
+                    <div class="d-flex justify-content-between h5 fw-bold border-top pt-3 text-danger"><span>Cần thanh toán:</span><span id="payFinalAmount">0đ</span></div>
+                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button><button type="button" class="btn btn-success px-4" onclick="submitPayment()">Hoàn tất thanh toán</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminWarningModal" tabindex="-1" style="z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-exclamation-triangle text-warning" style="font-size: 4rem;"></i></div>
+                <h4 class="fw-800" id="adminWarningTitle">Thông báo</h4>
+                <p class="text-muted small" id="adminWarningMessage"></p>
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">ĐÃ HIỂU</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adminSuccessModal" tabindex="-1" style="z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg text-center p-4" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i></div>
+                <h4 class="fw-800" id="adminSuccessTitle">Thành công</h4>
+                <p class="text-muted small" id="adminSuccessMessage"></p>
+                <button type="button" class="btn btn-dark w-100 rounded-pill fw-bold" data-bs-dismiss="modal">ĐÓNG</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="actionConfirmModal" tabindex="-1" aria-hidden="true" style="z-index: 1075;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg p-4 text-center" style="border-radius: 25px;">
+                <div class="mb-3"><i class="fas fa-question-circle text-primary" style="font-size: 4rem;"></i></div>
+                <h4 class="fw-800" id="confirmDialogTitle">Xác nhận</h4>
+                <p class="text-muted small mb-0" id="confirmDialogMsg"></p>
+                <div class="d-flex gap-2 w-100 mt-4">
+                    <button type="button" class="btn btn-light w-50 rounded-pill fw-bold" data-bs-dismiss="modal">HỦY</button>
+                    <button type="button" class="btn btn-primary w-50 rounded-pill fw-bold" onclick="executeGenericConfirm()">CÓ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .page-link { color: #64748b; border: 1px solid #e2e8f0; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+        .active > .page-link { background-color: #3b82f6 !important; border-color: #3b82f6 !important; color: white; }
+    </style>
+
+    <script th:inline="javascript">
+        let needReloadOrders = false;
+
+        var adminWarningModalObj = new bootstrap.Modal(document.getElementById('adminWarningModal'));
+        var adminSuccessModalObj = new bootstrap.Modal(document.getElementById('adminSuccessModal'));
+        var cancelItemModalObj = new bootstrap.Modal(document.getElementById('cancelItemModal'));
+        var actionConfirmModalObj = new bootstrap.Modal(document.getElementById('actionConfirmModal'));
+
+        let currentConfirmCallback = null;
+
+        function showConfirm(title, msg, callback) {
+            document.getElementById('confirmDialogTitle').innerText = title;
+            document.getElementById('confirmDialogMsg').innerText = msg;
+            currentConfirmCallback = callback;
+            actionConfirmModalObj.show();
+        }
+
+        window.executeGenericConfirm = function() {
+            if(currentConfirmCallback) currentConfirmCallback();
+            actionConfirmModalObj.hide();
+        }
+
+        function showAdminWarning(title, msg) {
+            document.getElementById('adminWarningTitle').innerText = title;
+            document.getElementById('adminWarningMessage').innerText = msg;
+            adminWarningModalObj.show();
+        }
+
+        function showAdminSuccess(title, msg) {
+            document.getElementById('adminSuccessTitle').innerText = title;
+            document.getElementById('adminSuccessMessage').innerText = msg;
+            adminSuccessModalObj.show();
+        }
+
+        function resetFilters() { document.getElementById('searchOrderInput').value = ''; document.getElementById('filterOrderDate').value = ''; document.getElementById('filterOrderStatus').value = ''; searchOrder(); }
+        function searchOrder() { changePage(0); }
+        document.getElementById('searchOrderInput').addEventListener('keypress', function (e) { if (e.key === 'Enter') searchOrder(); });
+
+        function changePage(page) {
+            const kw = document.getElementById('searchOrderInput').value.trim();
+            const dt = document.getElementById('filterOrderDate').value;
+            const st = document.getElementById('filterOrderStatus').value;
+            let url = `/admin/api/orders/content?page=${page}`;
+            if (kw) url += `&keyword=${encodeURIComponent(kw)}`; if (dt) url += `&date=${dt}`; if (st) url += `&status=${st}`;
+            loadModule('/admin/orders', url, document.getElementById('nav-orders'));
+        }
+
+        window.initModals = function() {
+            window.createOrderModalObj = new bootstrap.Modal(document.getElementById('createOrderModal'));
+            window.detailsModalObj = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+            window.paymentModalObj = new bootstrap.Modal(document.getElementById('paymentModal'));
+            document.getElementById('orderDetailsModal').addEventListener('hidden.bs.modal', function () { if(needReloadOrders) changePage(0); });
+        }
+
+        window.forceCloseModals = function() {
+            if(window.createOrderModalObj) window.createOrderModalObj.hide();
+            if(window.detailsModalObj) window.detailsModalObj.hide();
+            if(window.paymentModalObj) window.paymentModalObj.hide();
+            cancelItemModalObj.hide();
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open'); document.body.style = '';
+        }
+
+        window.openCreateOrderModal = function() { window.createOrderModalObj.show(); }
+
+        window.submitCreateOrder = function() {
+            fetch('/admin/api/orders/create?tableId=' + document.getElementById('newOrderTable').value, {method: 'POST'}).then(res => res.text()).then(data => {
+                if(data === 'success') {
+                    window.forceCloseModals();
+                    window.location.reload();
+                } else { showAdminWarning("Lỗi", data); }
+            });
+        }
+
+        window.confirmCancelOrder = function(orderId) {
+            showConfirm("Hủy hóa đơn", `Bạn có chắc chắn muốn hủy hóa đơn #${orderId} không? Hành động này sẽ giải phóng bàn.`, () => {
+                fetch(`/admin/api/orders/cancel?orderId=${orderId}`, { method: 'POST' })
+                    .then(async res => {
+                        if(!res.ok) {
+                            showAdminWarning("Không thể hủy", await res.text());
+                        } else {
+                            showAdminSuccess("Thành công", "Đã hủy hóa đơn và giải phóng bàn!");
+                            document.getElementById('adminSuccessModal').addEventListener('hidden.bs.modal', function () {
+                                window.location.reload();
+                            }, { once: true });
+                        }
+                    });
+            });
+        }
+
+        window.openOrderDetails = function(orderId, status) {
+            needReloadOrders = false; window.currentDetailOrderId = orderId; window.currentDetailOrderStatus = status;
+            document.getElementById('detailOrderId').innerText = '#' + orderId;
+
+            document.getElementById('detailTableBody').innerHTML = '<tr><td colspan="5" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Đang tải dữ liệu...</td></tr>';
+            document.getElementById('addItemSection').style.display = 'none';
+
+            const btnAdd = document.getElementById('btnOpenAddItem');
+            if (status === 'PAID' || status === 'CANCELLED') { btnAdd.style.display = 'none'; } else { btnAdd.style.display = 'inline-block'; }
+
+            fetch('/admin/api/orders/details/' + orderId).then(res => res.json()).then(data => {
+                let html = '';
+                data.forEach(d => {
+                    let actionHtml = `<span class="badge bg-secondary">Cố định</span>`;
+                    if(status !== 'PAID' && status !== 'CANCELLED' && d.servedStatus !== 'SERVED') {
+                        actionHtml = `<button class="btn btn-sm btn-outline-danger" onclick="openCancelItemModal(${d.detailId}, ${d.quantity})" title="Hủy món"><i class="fas fa-trash"></i></button>`;
+                    }
+                    html += `<tr><td class="text-start">${d.menuItem.name} <br> <small class="text-muted">(${d.servedStatus === 'SERVED' ? 'Đã lên món' : 'Đang chờ'})</small></td><td>${d.unitPrice.toLocaleString()}đ</td><td>${d.quantity}</td><td class="fw-bold">${(d.unitPrice * d.quantity).toLocaleString()}đ</td><td>${actionHtml}</td></tr>`;
+                });
+                document.getElementById('detailTableBody').innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">Chưa có món nào</td></tr>';
+                window.detailsModalObj.show();
+            });
+        }
+
+        window.openCancelItemModal = function(detailId, maxQty) {
+            document.getElementById('cancelDetailId').value = detailId;
+            const input = document.getElementById('cancelItemQty');
+            input.value = 1; input.max = maxQty;
+            cancelItemModalObj.show();
+        }
+
+        window.confirmCancelItem = function() {
+            const dId = document.getElementById('cancelDetailId').value;
+            const q = document.getElementById('cancelItemQty').value;
+
+            if (q <= 0) {
+                showAdminWarning("Không hợp lệ", "Số lượng hủy phải lớn hơn 0!");
+                return;
+            }
+
+            fetch(`/admin/api/orders/remove-item?detailId=${dId}&quantity=${q}`, {method: 'POST'})
+                .then(async res => {
+                    if(!res.ok) {
+                        showAdminWarning("Lỗi Hủy Món", await res.text());
+                    } else {
+                        cancelItemModalObj.hide();
+                        needReloadOrders = true;
+                        window.openOrderDetails(window.currentDetailOrderId, window.currentDetailOrderStatus);
+                    }
+                });
+        }
+
+        window.openAddItemSection = function() {
+            fetch('/admin/api/orders/menu-items').then(res => res.json()).then(data => {
+                let html = ''; data.forEach(m => html += `<option value="${m.itemId}">${m.name} - ${m.price.toLocaleString()}đ</option>`);
+                document.getElementById('menuItemSelect').innerHTML = html;
+                document.getElementById('itemQty').value = 1;
+                document.getElementById('addItemSection').style.display = 'block';
+            });
+        }
+
+        window.submitAddItem = function() {
+            const iId = document.getElementById('menuItemSelect').value; const qty = document.getElementById('itemQty').value;
+
+            if (qty <= 0) {
+                showAdminWarning("Không hợp lệ", "Số lượng thêm phải lớn hơn 0!");
+                return;
+            }
+
+            fetch(`/admin/api/orders/add-item?orderId=${window.currentDetailOrderId}&itemId=${iId}&quantity=${qty}`, {method: 'POST'})
+                .then(async res => {
+                    if (!res.ok) {
+                        showAdminWarning("Không thể thêm món", await res.text());
+                    } else {
+                        document.getElementById('itemQty').value = 1;
+                        window.openOrderDetails(window.currentDetailOrderId, window.currentDetailOrderStatus);
+                        needReloadOrders = true;
+                    }
+                });
+        }
+
+        window.openPaymentModal = function(orderId, totalAmount) {
+            window.originalTotalAmount = parseFloat(totalAmount);
+            if (isNaN(window.originalTotalAmount) || window.originalTotalAmount <= 0) {
+                showAdminWarning("Lưu ý", "Không có khoản tiền cần thanh toán! Nếu khách hủy, vui lòng chọn Cập nhật trạng thái.");
+                return;
+            }
+
+            window.currentOrderId = orderId;
+            document.getElementById('payTotalAmount').innerText = window.originalTotalAmount.toLocaleString() + 'đ';
+            document.getElementById('payFinalAmount').innerText = window.originalTotalAmount.toLocaleString() + 'đ';
+
+            fetch('/admin/api/orders/active-discounts').then(res => res.json()).then(data => {
+                let html = '<option value="" data-pct="0">-- Không giảm giá --</option>';
+                data.forEach(d => { html += `<option value="${d.discountId}" data-pct="${d.discountPercent}">${d.name} (-${d.discountPercent}%)</option>`; });
+                document.getElementById('payDiscountSelect').innerHTML = html;
+                window.paymentModalObj.show();
+            });
+        }
+
+        window.calculateFinalAmount = function() {
+            const s = document.getElementById('payDiscountSelect');
+            const pct = parseFloat(s.options[s.selectedIndex].getAttribute('data-pct') || 0);
+            document.getElementById('payFinalAmount').innerText = (window.originalTotalAmount * (1 - pct/100)).toLocaleString() + 'đ';
+        }
+
+        window.submitPayment = function() {
+            fetch(`/admin/api/orders/pay?orderId=${window.currentOrderId}&discountId=${document.getElementById('payDiscountSelect').value}`, { method: 'POST' })
+                .then(async res => {
+                    if(!res.ok) {
+                        showAdminWarning("Không thể thanh toán", await res.text());
+                    } else {
+                        window.forceCloseModals();
+                        showAdminSuccess("Tuyệt vời", "Thanh toán hóa đơn thành công!");
+                        document.getElementById('adminSuccessModal').addEventListener('hidden.bs.modal', function () {
+                            window.location.reload();
+                        }, { once: true });
+                    }
+                });
+        }
+
+        window.initModals();
+    </script>
+</div>

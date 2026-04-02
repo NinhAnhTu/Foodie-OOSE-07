@@ -1,0 +1,30 @@
+@startuml
+title Sequence Diagram - Yêu cầu thanh toán
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "table-bill.html" as View
+control "CustomerOrderController" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket" as Socket
+
+Customer -> View: Bấm thanh toán
+View -> Controller: POST /table/api/checkout
+
+activate Controller
+
+Controller -> Service: getOrderDetails()
+
+Controller -> Controller: kiểm tra served status
+
+Controller -> Service: update status PENDING_PAYMENT
+Service -> DB: UPDATE orders
+
+Controller -> Socket: notify waiter
+
+Controller --> View: success
+
+deactivate Controller
+
+@enduml

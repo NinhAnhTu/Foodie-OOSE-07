@@ -1,0 +1,45 @@
+@startuml
+autonumber
+actor "Waiter / Admin" as User
+boundary "Giao diện Chi tiết Đơn" as View
+control "Controller" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket (/topic)" as Socket
+
+User -> View: Chọn món, nhập SL xóa & Xác nhận
+View -> Controller: POST /api/orders/remove-item?detailId=...&quantity=...
+
+Controller -> Service: removeItemFromOrder(detailId, quantityToRemove)
+
+Service -> DB: Tìm OrderDetail(detailId)
+DB --> Service: Trả về OrderDetail
+
+Service -> Service: Kiểm tra Order.status == PAID?
+alt Đã thanh toán
+    Service --> Controller: Exception("Hóa đơn đã thanh toán!")
+end
+
+Service -> Service: Kiểm tra OrderDetail.servedStatus == SERVED?
+alt Đã phục vụ
+    Service --> Controller: Exception("Món đã phục vụ, không thể hủy!")
+end
+
+alt quantityToRemove > 0 && quantityToRemove < detail.quantity
+    Service -> Service: detail.quantity -= quantityToRemove
+    Service -> DB: save(OrderDetail)
+else Xóa toàn bộ
+    Service -> DB: delete(OrderDetail)
+end
+
+Service -> Service: recalculateTotal(order.getOrderId())
+Service -> DB: save(Order)
+
+Service --> Controller: void (Thành công)
+
+Controller -> Socket: convertAndSend("/topic/kitchen", "REMOVE_ITEM")
+Controller -> Socket: convertAndSend("/topic/order/id", "WAITER_UPDATE|REMOVE|...")
+
+Controller --> View: HTTP 200 "success"
+View --> User: Giao diện xóa món khỏi danh sách và cập nhật tiền
+@enduml

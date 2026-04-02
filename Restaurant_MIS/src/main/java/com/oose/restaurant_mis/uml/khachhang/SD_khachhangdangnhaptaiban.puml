@@ -1,0 +1,54 @@
+@startuml
+title Sequence Diagram - Đăng nhập tại bàn (Full Layers)
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "table-login.html" as View
+control "CustomerOrderController" as Controller
+participant "HttpSession" as Session
+participant "OrderService" as Service
+participant "OrderRepository" as Repo
+database "Database" as DB
+
+Customer -> View: Nhập tên, mã bàn, mã hóa đơn
+View -> Controller: POST /table/login
+activate Controller
+
+' --- Tầng Service & Repo ---
+Controller -> Service: getOrderById(orderId)
+activate Service
+
+Service -> Repo: findById(orderId)
+activate Repo
+
+Repo -> DB: SELECT * FROM orders WHERE order_id = ?
+activate DB
+DB --> Repo: Order Data
+deactivate DB
+
+Repo --> Service: Optional<Order>
+deactivate Repo
+
+Service --> Controller: Order object
+deactivate Service
+
+' --- Logic kiểm tra tại Controller ---
+note over Controller
+  Kiểm tra:
+  1. Order có tồn tại?
+  2. Trạng thái là OPEN hoặc PENDING_PAYMENT?
+  3. Mã bàn (tableCode) có khớp?
+end note
+
+alt Đăng nhập hợp lệ
+    Controller -> Session: setAttribute("customerOrderId", id)
+    Controller -> Session: setAttribute("customerName", name)
+    Controller -> Session: setAttribute("customerTableId", tableId)
+
+    Controller --> View: Redirect /table/menu
+else Thông tin sai / Hóa đơn đã đóng
+    Controller --> View: Trả về trang login + Thông báo lỗi
+end
+
+deactivate Controller
+@enduml

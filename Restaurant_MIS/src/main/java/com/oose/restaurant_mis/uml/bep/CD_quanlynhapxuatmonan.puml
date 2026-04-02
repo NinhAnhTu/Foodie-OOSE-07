@@ -1,0 +1,88 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+title Class Diagram - Quản lý nhập/xuất món ăn (Updated Style)
+
+' ================== DEFINE MACROS ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENUM ==================
+enum ServedStatus <<enumeration>> {
+    PENDING
+    COOKING
+    SERVED
+}
+
+' ================== ENTITY ==================
+entity(Order) {
+    - orderId : Integer
+    - table : DiningTable
+    - staff : User
+    - discount : Discount
+    - customerName : String
+    - totalAmount : Double
+    - finalAmount : Double
+    - status : OrderStatus
+    - createdAt : LocalDateTime
+    - closedAt : LocalDateTime
+    + getters/setters()
+}
+
+entity(OrderDetail) {
+    - orderDetailId : Integer
+    - order : Order
+    - item : MenuItem
+    - quantity : Integer
+    - price : Double
+    - note : String
+    - servedStatus : ServedStatus
+    + getters/setters()
+}
+
+' ================== CONTROLLER ==================
+controller(ChefController) {
+    + kitchenPage() : String
+    + getKitchenItems() : List<Map<String, Object>>
+    + updateStatus(detailId : Integer, status : String) : String
+}
+
+' ================== SERVICE ==================
+service(OrderService) {
+    - messagingTemplate : SimpMessagingTemplate
+    + getKitchenOrders() : List<OrderDetail>
+    + updateItemStatus(detailId : Integer, newStatus : ServedStatus) : void
+}
+
+' ================== REPOSITORY ==================
+repository(OrderDetailRepository) {
+    + findByServedStatusInOrderByOrderDetailIdAsc(statusList : List)
+    + findByOrder_OrderId(orderId : Integer)
+    + findById(id : Integer)
+    + save(orderDetail : OrderDetail)
+}
+
+repository(OrderRepository) {
+    + findById(id : Integer)
+    + save(order : Order)
+}
+
+' ================== RELATIONSHIPS ==================
+' Controller -> Service (Nét liền)
+ChefController --> OrderService
+
+' Service -> Repository (Nét liền)
+OrderService --> OrderDetailRepository
+OrderService --> OrderRepository
+
+' Repository -> Entity (Nét đứt)
+OrderDetailRepository ..> OrderDetail
+OrderRepository ..> Order
+
+' Quan hệ nội bộ thực thể
+Order "1" *-- "many" OrderDetail : chứa >
+OrderDetail *-- ServedStatus
+
+@enduml

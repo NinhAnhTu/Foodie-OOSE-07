@@ -1,0 +1,28 @@
+@startuml
+autonumber
+actor "Khách hàng" as Customer
+boundary "home.html (Trình duyệt)" as View
+control "ReservationController" as Controller
+participant "ReservationService" as Service
+database "Database" as DB
+
+Customer -> View: Điền thông tin và bấm "Gửi yêu cầu"
+View -> View: Javascript kiểm tra tính hợp lệ (HTML5)
+
+alt Dữ liệu hợp lệ
+    View -> Controller: POST /reservation/submit \n(Dùng Fetch API gửi ngầm)
+    Controller -> Service: savePendingReservation(reservation)
+
+    Service -> Service: Gán createdAt = now()\nGán status = PENDING
+    Service -> DB: save(reservation)
+    DB --> Service: Trả về Entity đã lưu
+    Service --> Controller: Hoàn tất xử lý
+
+    Controller --> View: Trả về text "success"
+    View -> View: Hiển thị successToast (Toast xanh)
+    View -> View: Reset form và Đóng Modal
+else Lỗi kết nối / Server lỗi
+    Controller --> View: HTTP Error / Exception
+    View -> View: Hiển thị errorToast (Toast đỏ)
+end
+@enduml

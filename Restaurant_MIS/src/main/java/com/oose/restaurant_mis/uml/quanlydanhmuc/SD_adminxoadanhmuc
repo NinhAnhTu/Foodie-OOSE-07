@@ -1,0 +1,29 @@
+@startuml
+actor Admin
+participant "Browser" as Browser
+participant "CategoryAdminController" as Controller
+participant "CategoryService" as Service
+participant "CategoryRepository" as Repo
+participant "AuditService" as Audit
+
+Admin -> Browser: Click delete icon
+Browser -> Browser: Hiển thị confirm modal
+Admin -> Browser: Confirm delete
+Browser -> Controller: DELETE /admin/api/categories/delete/{id}
+activate Controller
+Controller -> Service: getById(id) (lấy oldCategory)
+Service -> Repo: findById(id)
+Repo --> Service: category
+Service --> Controller: category
+Controller -> Service: delete(id)
+activate Service
+Service -> Repo: deleteById(id)
+Repo --> DB: DELETE categories WHERE category_id = id
+Service --> Controller: done
+deactivate Service
+Controller -> Audit: log(user, "DELETE", "Category", id, category, null)
+Audit -> DB: INSERT audit_logs
+Controller --> Browser: ResponseEntity.ok("success")
+deactivate Controller
+Browser -> Browser: Đóng confirm, tải lại danh sách (xử lý lùi trang nếu cần)
+@enduml

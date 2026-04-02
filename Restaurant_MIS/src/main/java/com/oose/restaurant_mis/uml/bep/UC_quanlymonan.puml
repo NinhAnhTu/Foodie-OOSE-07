@@ -1,0 +1,18 @@
+@startuml
+title Use Case Diagram - Phân hệ Đầu bếp
+
+actor "Đầu bếp (Chef)" as chef
+
+package "Quản lý Bếp" {
+    usecase "Xem danh sách món cần nấu" as UC1
+    usecase "Bắt đầu chế biến (PENDING -> COOKING)" as UC2
+    usecase "Hoàn thành món (COOKING -> SERVED)" as UC3
+    usecase "Danh sách món đã hủy" as UC4
+}
+
+chef --> UC1
+chef --> UC2
+chef --> UC3
+chef --> UC4
+
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+start
+:Bắt đầu nghiệp vụ Gọi món / Thêm món;
+
+split
+  -[Khách hàng (Customer)]->
+  :Chọn món, số lượng, nhập ghi chú;
+  :Gửi Request POST /table/api/cart/add \n(Thêm vào Session Cart);
+
+  if (Món đã có trong Cart?) then (Có)
+    :Cộng dồn số lượng;
+    :Cập nhật ghi chú (nếu có);
+  else (Chưa có)
+    :Thêm món mới vào Cart;
+  endif
+
+  :Khách bấm "Gọi món" (Xác nhận);
+  :Đổ dữ liệu từ Cart vào Database \n(Tạo các OrderDetail trạng thái PENDING);
+  :Xóa Cart khỏi Session;
+  :Bắn WebSocket "NEW_ORDER" báo Bếp;
+  stop
+
+split again
+  -[Waiter / Admin]->
+  :Chọn món, số lượng trên thiết bị;
+  :Gửi Request POST /api/orders/add-item;
+
+  :Kiểm tra trạng thái Hóa đơn (Order);
+  if (Order.status == PAID?) then (Đúng)
+    :Ném lỗi: "Hóa đơn đã thanh toán!";
+    stop
+  else (Sai - Hợp lệ)
+  endif
+
+  :Tìm chi tiết món (OrderDetail) trong DB;
+  if (Đã tồn tại VÀ đang PENDING?) then (Đúng)
+    :Cộng dồn số lượng;
+    :Nối chuỗi Ghi chú (nếu có);
+  else (Sai - Món đang nấu/đã lên hoặc Chưa có)
+    :Tạo OrderDetail MỚI \n(Trạng thái PENDING);
+  endif
+
+  :Lưu OrderDetail;
+  :Tính lại Tổng tiền (recalculateTotal);
+  :Lưu Order;
+
+  :Bắn WebSocket "NEW_ORDER" báo Bếp;
+  stop
+end split
+@enduml

@@ -1,0 +1,39 @@
+@startuml
+title Sequence Diagram - Cập nhật trạng thái món ăn (Update Status)
+
+actor "Đầu bếp" as Chef
+participant "ChefController" as Ctrl
+participant "OrderService" as Svc
+participant "OrderDetailRepository" as Repo
+database "Database" as DB
+participant "SimpMessagingTemplate" as WS
+
+Chef -> Ctrl : POST /chef/api/update-status/{detailId}?status={newStatus}
+activate Ctrl
+
+Ctrl -> Svc : updateItemStatus(detailId, newStatus)
+activate Svc
+
+Svc -> Repo : findById(detailId)
+activate Repo
+Repo -> DB : SELECT * FROM order_details WHERE id = ?
+DB --> Repo : OrderDetail Object
+Repo --> Svc : OrderDetail Object
+deactivate Repo
+
+Svc -> Svc : detail.setServedStatus(newStatus)
+
+Svc -> Repo : save(detail)
+activate Repo
+Repo -> DB : UPDATE order_details SET served_status = ? WHERE id = ?
+DB --> Repo : Success
+Repo --> Svc : Saved Object
+deactivate Repo
+
+Svc -> WS : convertAndSend("/topic/order/{orderId}", "ITEM_STATUS_UPDATED")
+note right: Thông báo thời gian thực\ncho Waiter & Khách hàng
+deactivate Svc
+
+Ctrl --> Chef : "success"
+deactivate Ctrl
+@enduml

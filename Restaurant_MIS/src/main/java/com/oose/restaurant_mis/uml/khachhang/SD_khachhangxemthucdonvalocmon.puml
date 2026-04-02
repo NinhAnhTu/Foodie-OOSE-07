@@ -1,0 +1,65 @@
+@startuml
+title Sequence Diagram - Xem thực đơn & Lọc món (Filtering)
+autonumber
+
+actor "Khách hàng" as Customer
+boundary "home.html" as View
+control "HomeController" as Controller
+participant "CategoryService" as CatService
+participant "MenuItemService" as DishService
+participant "CategoryRepository" as CatRepo
+participant "MenuItemRepository" as DishRepo
+database "Database" as DB
+
+' Khách hàng tương tác với bộ lọc
+Customer -> View: Chọn Loại món (categoryId) \nhoặc Nhập từ khóa (keyword)
+View -> Controller: GET /menu?categoryId=...&keyword=...
+
+activate Controller
+
+' 1. Lấy danh sách danh mục để hiển thị thanh công cụ lọc
+Controller -> CatService: getAllCategories()
+activate CatService
+CatService -> CatRepo: findAll()
+activate CatRepo
+CatRepo -> DB: SELECT * FROM categories
+activate DB
+DB --> CatRepo: List<Category>
+deactivate DB
+CatRepo --> CatService: List<Category>
+deactivate CatRepo
+CatService --> Controller: List<Category>
+deactivate CatService
+
+' 2. Lấy toàn bộ danh sách món ăn
+Controller -> DishService: getAllMenuItems()
+activate DishService
+DishService -> DishRepo: findAll()
+activate DishRepo
+DishRepo -> DB: SELECT * FROM menu_items
+activate DB
+DB --> DishRepo: List<MenuItem>
+deactivate DB
+DishRepo --> DishService: List<MenuItem>
+deactivate DishRepo
+DishService --> Controller: List<MenuItem>
+deactivate DishService
+
+' 3. THỰC HIỆN LỌC (Logic tại Controller)
+note over Controller
+  **Logic Lọc tại Controller:**
+  1. Nếu có categoryId:
+     items.filter(i -> i.categoryId == categoryId)
+  2. Nếu có keyword:
+     items.filter(i -> i.name contains keyword)
+end note
+
+' 4. Trả về kết quả
+Controller -> Controller: model.addAttribute("menuItems", allitems)
+Controller -> Controller: model.addAttribute("currentCategoryId", categoryId)
+
+Controller --> View: Trả về "home.html" (activePage='menu')
+deactivate Controller
+
+View --> Customer: Hiển thị danh sách món đã lọc
+@enduml

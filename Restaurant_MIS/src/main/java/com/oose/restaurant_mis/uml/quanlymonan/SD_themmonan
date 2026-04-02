@@ -1,0 +1,35 @@
+@startuml
+actor Admin
+participant "DishAdminController" as DAC
+participant "MenuItemService" as MIS
+participant "MenuItemRepository" as MIR
+participant "FileSystem" as FS
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> DAC: POST /admin/api/dishes/save\n(multipart/form-data)
+activate DAC
+
+DAC -> DAC: kiểm tra giá không âm
+DAC -> FS: lưu file ảnh vào thư mục uploads
+FS --> DAC: đường dẫn /uploads/xxx.jpg
+
+DAC -> MIS: save(menuItem)
+activate MIS
+MIS -> MIR: save(menuItem)
+MIR -> DB: INSERT/UPDATE menu_items
+DB --> MIR: generated id
+MIR --> MIS: savedItem
+MIS --> DAC: done
+deactivate MIS
+
+DAC -> AS: log(user, "CREATE", "MenuItem", id, null, savedItem)
+activate AS
+AS -> DB: INSERT audit_logs
+DB --> AS: log saved
+AS --> DAC: done
+deactivate AS
+
+DAC --> Admin: "success" (HTTP 200)
+deactivate DAC
+@enduml

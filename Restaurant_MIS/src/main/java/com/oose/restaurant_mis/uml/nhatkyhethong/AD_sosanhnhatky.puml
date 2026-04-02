@@ -1,0 +1,29 @@
+@startuml
+title Activity Diagram - So sánh dữ liệu nhật ký
+
+|Quản trị viên|
+start
+:Chọn một bản ghi nhật ký;
+:Nhấn nút "Xem chi tiết";
+
+|Giao diện|
+:Lấy oldValue và newValue;
+:Parse JSON;
+
+if (Có cả oldValue và newValue?) then (Có)
+    :Tạo bảng so sánh;
+else (Không)
+    if (Chỉ có newValue?) then (Có)
+        :Hiển thị dữ liệu thêm mới;
+    else
+        :Hiển thị dữ liệu đã xóa;
+    endif
+endif
+
+:Hiển thị popup/modal;
+
+|Quản trị viên|
+:Đối chiếu thay đổi dữ liệu;
+
+stop
+@enduml

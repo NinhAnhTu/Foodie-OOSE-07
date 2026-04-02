@@ -1,0 +1,52 @@
+@startuml
+start
+:Admin vào trang quản lý bàn;
+:Hiển thị danh sách (phân trang, bộ lọc trạng thái, sức chứa, ô tìm kiếm, nút reset);
+while (Thực hiện thao tác) is (Có)
+  if (Admin muốn) then (Thêm mới)
+    :Mở form;
+    :Nhập tên bàn, mã bàn, sức chứa, khu vực (note) ;
+    :Gửi request;
+    if (Mã bàn đã tồn tại?) then (Có)
+      :Hiển thị lỗi trùng mã;
+    else (Hợp lệ)
+      :Lưu vào DB restaurant_tables;
+      :Ghi audit_logs;
+      :Tải lại danh sách;
+    endif
+  elseif (Sửa)
+    :Chọn bàn, mở form sửa;
+    :Sửa thông tin (có thể thay đổi trạng thái);
+    :Gửi request;
+    if (Bàn đang OCCUPIED và muốn chuyển trạng thái khác?) then (Có)
+      :Hiển thị lỗi không được phép;
+    elseif (Mã bàn mới đã tồn tại với bàn khác) then (Có)
+      :Hiển thị lỗi trùng mã;
+    else (Hợp lệ)
+      :Cập nhật DB restaurant_tables;
+      :Ghi audit_logs;
+      :Tải lại danh sách;
+    endif
+  elseif (Xóa)
+    :Xác nhận xóa;
+    if (Bàn đang OCCUPIED?) then (Có)
+      :Hiển thị lỗi không thể xóa;
+    else (Không)
+      :Xóa bàn khỏi DB;
+      :Ghi audit_logs;
+      :Cập nhật danh sách (lùi trang nếu cần);
+    endif
+  elseif (Lọc/Tìm kiếm)
+    :Chọn trạng thái, nhập sức chứa hoặc từ khóa;
+    :Gửi request;
+    :Truy vấn DB với điều kiện;
+    :Hiển thị kết quả;
+  elseif (Xem đặt bàn)
+    :Chọn bàn có trạng thái RESERVED;
+    :Gửi request;
+    :Truy vấn DB lấy thông tin đặt bàn;
+    :Hiển thị modal thông tin khách;
+  endif
+endwhile (Không)
+stop
+@enduml

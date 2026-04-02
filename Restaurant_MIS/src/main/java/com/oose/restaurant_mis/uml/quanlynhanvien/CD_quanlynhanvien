@@ -1,0 +1,80 @@
+@startuml
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#FAD7A0) >>
+
+' --- Định nghĩa Enum ---
+enum RoleType {
+  ADMIN
+  WAITER
+  CHEF
+}
+
+' --- Các thực thể ---
+entity(User) {
+  - userId: Integer
+  - role: RoleType
+  - username: String
+  - password: String
+  - fullName: String
+  - email: String
+  - phone: String
+  - status: Boolean
+  - createdAt: Timestamp
+  + getters/setters
+}
+
+' --- Controller ---
+controller(StaffAdminController) {
+  + getContent(page, size, keyword, role, Model)
+  + save(User, Model)
+  + edit(id): User
+  + delete(id)
+}
+
+controller(AuthController) {
+  + login(username, password, session): String
+  + logout(session): String
+  + keepAlive(): String
+}
+
+' --- Service ---
+service(StaffService) {
+  + searchStaff(keyword, role, page, size): Page<User>
+  + getById(id): User
+  + save(user): void
+  + delete(id): void
+}
+
+service(AuthService) {
+  + authenticate(username, password): User
+}
+
+' --- Repository ---
+repository(UserRepository) {
+  + findAll(Pageable): Page<User>
+  + searchStaff(keyword, role, Pageable): Page<User>
+  + existsByUsername(username): boolean
+  + existsByUsernameAndUserIdNot(username, userId): boolean
+  + existsByEmail(email): boolean
+  + existsByEmailAndUserIdNot(email, userId): boolean
+  + findByUsername(username): User
+}
+
+' --- Mối quan hệ ---
+
+' User sở hữu một RoleType
+User "many" -- "1" RoleType : has
+
+' Staff Relationships
+StaffAdminController --> StaffService
+StaffService --> UserRepository
+
+' Auth Relationships
+AuthController --> AuthService
+AuthService --> UserRepository
+
+' Repository -> Entity
+UserRepository ..> User
+@enduml

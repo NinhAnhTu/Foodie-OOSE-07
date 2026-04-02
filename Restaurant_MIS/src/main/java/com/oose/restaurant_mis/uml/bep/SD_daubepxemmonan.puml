@@ -1,0 +1,34 @@
+@startuml
+title Sequence Diagram - Lấy danh sách món ăn cho Bếp (Get Kitchen Items)
+
+actor "Đầu bếp (Dashboard UI)" as Chef
+participant "ChefController" as Ctrl
+participant "OrderService" as Svc
+participant "OrderDetailRepository" as Repo
+database "Database" as DB
+
+Chef -> Ctrl : GET /chef/api/items
+activate Ctrl
+
+Ctrl -> Svc : getKitchenOrders()
+activate Svc
+
+Svc -> Repo : findByServedStatusInOrderByOrderDetailIdAsc([PENDING, COOKING])
+activate Repo
+
+Repo -> DB : SELECT * FROM order_details WHERE served_status IN (...)
+DB --> Repo : List<OrderDetail>
+deactivate Repo
+
+Svc -> Svc : Lọc các OrderDetail có Order != null
+Svc --> Ctrl : List<OrderDetail> (Sạch)
+deactivate Svc
+
+Ctrl -> Ctrl : Nhóm món ăn theo OrderId (groupingBy)
+Ctrl -> Ctrl : Chuyển đổi sang Map<String, Object> (JSON format)
+note right: Bao gồm thông tin Bàn,\nTên món, Số lượng, Ghi chú
+
+Ctrl --> Chef : List of Order Maps
+deactivate Ctrl
+
+@enduml

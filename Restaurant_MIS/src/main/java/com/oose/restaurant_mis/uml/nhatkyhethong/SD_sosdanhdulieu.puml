@@ -1,0 +1,24 @@
+@startuml
+title Sequence Diagram - So sánh dữ liệu Audit Log
+autonumber
+
+actor "Quản trị viên" as Admin
+boundary "audit_logs.html" as UI
+participant "JSON Parser (Frontend)" as JS
+
+Admin -> UI: Nhấn nút "So sánh"
+activate UI
+
+UI -> JS: parse(oldValue,newValue)
+activate JS
+
+JS --> UI: JSON Objects
+deactivate JS
+
+UI -> UI: So sánh field thay đổi
+
+UI --> Admin: Hiển thị bảng
+
+deactivate UI
+
+@enduml

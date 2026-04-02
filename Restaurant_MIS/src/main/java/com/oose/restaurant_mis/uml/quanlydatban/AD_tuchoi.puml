@@ -1,0 +1,20 @@
+@startuml
+start
+:Admin nhập lý do từ chối và bấm "Từ chối";
+:Gửi Request POST với **reservationId** và **reason**;
+
+:Hệ thống truy xuất Reservation (từ Database);
+
+:Cập nhật Reservation.status = CANCELLED;
+:Gọi ReservationService.save();
+
+if (Reservation có chứa Email hợp lệ?) then (Có)
+  :Format lại thời gian đặt bàn (HH:mm dd/MM/yyyy);
+  :Gọi EmailService gửi mail thông báo từ chối \n(kèm tên khách, thời gian và lý do);
+else (Không có Email)
+endif
+
+:Trả về chuỗi "success" (HTTP 200);
+:Giao diện (Frontend) ẩn đơn bị từ chối / tải lại danh sách;
+stop
+@enduml

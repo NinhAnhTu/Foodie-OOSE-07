@@ -1,0 +1,40 @@
+@startuml
+title Sequence Diagram - Lọc Audit Log
+autonumber
+
+actor "Quản trị viên" as Admin
+boundary "audit_logs.html" as UI
+control "AuditAdminController" as Ctrl
+participant "AuditService" as Svc
+participant "AuditLogRepository" as Repo
+database "Database" as DB
+
+Admin -> UI: Chọn ngày lọc
+UI -> Ctrl: GET /admin/api/audit-logs/content?date=...&page=...
+activate Ctrl
+
+Ctrl -> Svc: searchLogsByDate(date,page,size)
+activate Svc
+
+Svc -> Svc: Parse date -> startDate/endDate
+
+Svc -> Repo: searchLogs(startDate,endDate,pageable)
+activate Repo
+
+Repo -> DB: SELECT audit_logs theo ngày
+activate DB
+DB --> Repo: Page<AuditLog>
+deactivate DB
+
+Repo --> Svc: Page<AuditLog>
+deactivate Repo
+
+Svc --> Ctrl: Page<AuditLog>
+deactivate Svc
+
+Ctrl --> UI: Render fragment content
+deactivate Ctrl
+
+UI --> Admin: Hiển thị danh sách đã lọc
+
+@enduml

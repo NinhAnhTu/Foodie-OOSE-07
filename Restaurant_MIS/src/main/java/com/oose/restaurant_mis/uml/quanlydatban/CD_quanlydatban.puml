@@ -1,0 +1,65 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' ================== DEFINE ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENUM ==================
+enum ReservationStatus <<enumeration>> {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  DONE
+}
+
+' ================== ENTITY ==================
+entity(Reservation) {
+  - reservationId: Integer
+  - customerName: String
+  - phone: String
+  - email: String
+  - guestCount: Integer
+  - reservationTime: LocalDateTime
+  - status: ReservationStatus
+  + getters/setters
+}
+
+' ================== CONTROLLER ==================
+controller(ReservationAdminController) {
+  + getContent(...): String
+  + accept(reservationId, tableId): ResponseEntity<?>
+  + reject(reservationId, reason): String
+  + getPendingCount(): long
+}
+
+' ================== SERVICE ==================
+service(ReservationService) {
+  + savePendingReservation(res): void
+  + save(res): void
+  + cancelReservationByTable(tableId): void
+  + searchReservations(...): Page<Reservation>
+}
+
+' ================== REPOSITORY ==================
+repository(ReservationRepository) {
+  + searchReservations(...): Page<Reservation>
+  + countByStatus(status): long
+}
+
+' ================== RELATION ==================
+' Thực thể trỏ tới Enum
+Reservation *-- ReservationStatus
+
+' Controller -> Service (Nét liền vì @Autowired)
+ReservationAdminController --> ReservationService
+
+' Service -> Repository (Nét liền vì @Autowired)
+ReservationService --> ReservationRepository
+
+' Repository -> Entity (Nét đứt vì chỉ thao tác dữ liệu)
+ReservationRepository ..> Reservation
+
+@enduml

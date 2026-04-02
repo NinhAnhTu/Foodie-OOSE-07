@@ -1,0 +1,57 @@
+@startuml
+autonumber
+actor "Admin / Waiter" as User
+boundary "Giao diện (Modal Tính tiền)" as View
+control "Controller" as Controller
+participant "OrderService" as Service
+database "Database" as DB
+boundary "WebSocket (/topic)" as Socket
+
+User -> View: Chọn Giảm giá, Phương thức & Xác nhận
+View -> View: JS: calculateFinalAmount() tính toán hiển thị UI
+
+View -> Controller: POST /api/orders/pay?orderId=...&discountId=...
+
+Controller -> Service: payOrder(orderId, discountId, method)
+
+Service -> DB: Tìm Order theo orderId
+DB --> Service: Trả về Order
+
+Service -> DB: Tìm List<OrderDetail> của Order này
+DB --> Service: Trả về danh sách món
+
+loop Duyệt qua từng OrderDetail
+    alt detail.servedStatus != SERVED
+        Service --> Controller: Exception("Hóa đơn còn món chưa phục vụ xong!")
+        Controller --> View: HTTP 400 (Lỗi)
+        View --> User: showAdminWarning("Không thể thanh toán...")
+    end
+end
+
+alt Có truyền discountId
+    Service -> DB: Tìm Discount theo discountId
+    DB --> Service: Trả về Discount
+    Service -> Service: Áp dụng % và tính lại order.finalAmount
+    Service -> Service: order.setDiscount(discount)
+end
+
+Service -> Service: order.setStatus(PAID)
+Service -> Service: order.setClosedAt(now())
+Service -> DB: save(Order)
+DB --> Service: Đã lưu Hóa đơn
+
+Service -> Service: Lấy DiningTable từ Order
+Service -> Service: table.setStatus(EMPTY)
+Service -> DB: save(DiningTable)
+DB --> Service: Đã cập nhật Bàn
+
+Service --> Controller: Xử lý thành công
+
+Controller -> Socket: convertAndSend("/topic/tables", "UPDATE_TABLE_MAP")
+note right: Các màn hình khác tự động\nchuyển bàn này về màu Xanh (Trống)
+
+Controller --> View: HTTP 200 "success"
+View -> View: window.forceCloseModals()
+View -> View: showAdminSuccess("Thanh toán thành công!")
+View --> User: window.location.reload() (Tải lại dữ liệu)
+@enduml

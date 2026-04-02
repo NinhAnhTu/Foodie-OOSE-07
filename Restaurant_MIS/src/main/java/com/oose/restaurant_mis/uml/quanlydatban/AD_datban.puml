@@ -1,0 +1,28 @@
+@startuml
+start
+:Khách hàng nhập thông tin vào Form (home.html);
+:Bấm nút "Gửi yêu cầu đặt bàn";
+
+if (Dữ liệu qua được Validate HTML5?) then (Không)
+  :Trình duyệt chặn lại và báo đỏ ô nhập liệu;
+  stop
+else (Có)
+  :Dùng Fetch API gửi POST /reservation/submit;
+
+  :Controller nhận dữ liệu và chuyển cho Service;
+  :Service gán thời gian tạo (createdAt = now);
+  :Service gán trạng thái (status = PENDING);
+
+  :Lưu dữ liệu mới vào Database;
+
+  if (Lưu thành công?) then (Thành công)
+    :Backend trả về chuỗi "success";
+    :Frontend hiển thị Toast xanh (successToast);
+    :Frontend đóng Modal và Reset Form;
+  else (Lỗi hệ thống)
+    :Backend ném Exception / lỗi;
+    :Frontend hiển thị Toast đỏ (errorToast);
+  endif
+endif
+stop
+@enduml

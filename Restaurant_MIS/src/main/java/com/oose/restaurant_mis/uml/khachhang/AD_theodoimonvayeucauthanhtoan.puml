@@ -1,0 +1,23 @@
+@startuml
+title Activity Diagram - Thanh toán tại bàn
+
+start
+
+:Theo dõi trạng thái món ăn;
+
+if (Ăn xong?) then (Có)
+
+    if (Tất cả món đã SERVED?) then (Không)
+        :Báo lỗi chờ đủ món;
+        stop
+    else (Có)
+        :Yêu cầu thanh toán;
+        :Cập nhật order = PENDING_PAYMENT;
+        :Gửi WebSocket cho nhân viên;
+        :Nhân viên thanh toán hóa đơn;
+    endif
+
+endif
+
+stop
+@enduml

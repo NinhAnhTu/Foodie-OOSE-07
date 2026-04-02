@@ -1,0 +1,45 @@
+@startuml
+autonumber
+actor "Admin" as Admin
+boundary "discounts.html" as View
+control "DiscountAdminController" as Controller
+participant "DiscountService" as Service
+participant "AuditService" as Audit
+database "Database" as DB
+
+Admin -> View: Nhập dữ liệu và Submit
+View -> View: JS Validate (Check ngày tháng)
+View -> Controller: POST /admin/api/discounts/save
+
+Controller -> Controller: Kiểm tra Session
+Controller -> Controller: Kiểm tra endTime.isBefore(startTime)
+
+alt Hợp lệ
+    Controller -> Service: save(discount, admin)
+
+    alt discount.getDiscountId() != null
+        Service -> DB: findById(discountId)
+        DB --> Service: Trả về oldValue
+    else Tạo mới
+        Service -> Service: oldValue = null
+    end
+
+    Service -> DB: save(discount)
+
+    alt Trùng tên chương trình
+        DB --> Service: DataIntegrityViolationException
+        Service --> Controller: Ném Exception
+        Controller --> View: HTTP 400 "Tên đã tồn tại"
+        View -> View: Hiển thị errorModal
+    else Thành công
+        DB --> Service: Trả về newValue
+        Service -> Audit: log(admin, action, "discounts", id, oldValue, newValue)
+        Service --> Controller: Xong
+        Controller --> View: HTTP 200 "success"
+        View -> View: discModal.hide()\nGọi changePage(0)
+    end
+else Lỗi Validate Backend
+    Controller --> View: HTTP 400 "Ngày kết thúc không được nhỏ hơn..."
+    View -> View: Hiển thị errorModal
+end
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+title Activity Diagram - Khách hàng đặt bàn trực tuyến
+
+start
+:Truy cập Website;
+:Xem thông tin & Thực đơn;
+:Điền Form Đặt bàn;
+note right
+  - Tên, SĐT, Email
+  - Ngày, Giờ, Số khách
+  - Ghi chú thêm
+end note
+
+if (Thông tin hợp lệ?) then (Không)
+  :Hiển thị lỗi nhập liệu;
+  stop
+else (Có)
+  :Gửi yêu cầu đặt bàn (POST /reservation/submit);
+  :Hệ thống lưu Reservation (status = PENDING);
+  :Bắn tín hiệu WebSocket cho Admin;
+  :Hiển thị thông báo yêu cầu đặt bàn;
+  :Khách hàng chờ Nhà hàng xác nhận Email (Nhà hàng có quyền từ chối);
+endif
+
+stop
+@enduml

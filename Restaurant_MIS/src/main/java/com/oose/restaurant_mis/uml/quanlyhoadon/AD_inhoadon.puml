@@ -1,0 +1,30 @@
+@startuml
+start
+:Admin / Waiter bấm nút "In hóa đơn" \n(Trên sơ đồ bàn hoặc danh sách hóa đơn);
+
+:Giao diện mở tab mới hoặc popup gửi Request: \nGET /waiter/print-invoice/{orderId};
+
+note right
+  **Backend Processing (WaiterController)**
+end note
+
+:Truy xuất thông tin Hóa đơn (Order) từ DB \nqua OrderService;
+:Truy xuất danh sách Chi tiết món (List<OrderDetail>) \nqua OrderService;
+
+:Gán dữ liệu Order và Details vào Model;
+:Gán thông tin Ngân hàng cố định vào Model: \n- bankId = "970423" \n- accountNo = "0123456789";
+
+:Controller Render template Thymeleaf \n"waiter/invoice_print";
+
+note right
+  **Frontend Processing (invoice_print.html)**
+end note
+
+:Thymeleaf format lại định dạng tiền tệ (Thêm dấu phẩy);
+:Hiển thị Tạm tính, Giảm giá và Tổng cộng (finalAmount);
+:Giao diện tự động sinh ảnh QR Code \nchuyển khoản từ VietQR;
+
+:Trình duyệt hiển thị giao diện In (rộng 80mm);
+:Nhân viên thao tác in (Ctrl+P / window.print);
+stop
+@enduml

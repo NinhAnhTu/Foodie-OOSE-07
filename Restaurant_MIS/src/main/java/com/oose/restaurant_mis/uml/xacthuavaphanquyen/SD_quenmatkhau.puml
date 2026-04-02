@@ -1,0 +1,56 @@
+@startuml
+title Sequence Diagram - Quên mật khẩu (Gửi email reset)
+autonumber
+
+actor "Người dùng" as User
+boundary "forgot_password.html" as ForgotPage
+control "ForgotPasswordController" as Ctrl
+participant "PasswordResetService" as Service
+participant "EmailService" as EmailService
+participant "UserRepository" as UserRepo
+participant "PasswordResetRepository" as ResetRepo
+database "Database" as DB
+
+User -> ForgotPage: Nhập Email và bấm "Gửi"
+ForgotPage -> Ctrl: POST /forgot-password(email)
+activate Ctrl
+
+Ctrl -> Service: createAndSendResetToken(email, appUrl)
+activate Service
+
+Service -> UserRepo: findByEmail(email)
+activate UserRepo
+UserRepo -> DB: SELECT * FROM users WHERE email = ?
+activate DB
+DB --> UserRepo: User Object
+deactivate DB
+UserRepo --> Service: User Object
+deactivate UserRepo
+
+alt Email tồn tại
+    Service -> Service: UUID.randomUUID()
+    Service -> ResetRepo: save(PasswordReset)
+    activate ResetRepo
+    ResetRepo -> DB: INSERT INTO password_resets
+    activate DB
+    DB --> ResetRepo: Success
+    deactivate DB
+    ResetRepo --> Service: Success
+    deactivate ResetRepo
+
+    Service -> EmailService: sendResetEmail(email, appUrl, token)
+    activate EmailService
+    EmailService --> Service: Return
+    deactivate EmailService
+
+    Service --> Ctrl: true
+    Ctrl --> ForgotPage: Thông báo "Đã gửi Email"
+else Email không tồn tại
+    Service --> Ctrl: false
+    Ctrl --> ForgotPage: Thông báo lỗi
+end
+
+deactivate Service
+deactivate Ctrl
+
+@enduml

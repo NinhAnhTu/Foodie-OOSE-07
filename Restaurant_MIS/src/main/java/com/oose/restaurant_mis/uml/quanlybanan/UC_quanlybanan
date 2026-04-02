@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+actor "Quản lý (Admin)" as Admin
+actor "Nhân viên phục vụ (Waiter)" as Waiter
+
+rectangle "Quản lý bàn ăn" {
+  usecase "Xem danh sách bàn\n(phân trang, lọc theo trạng thái, tìm kiếm)" as UC_ListTable
+  usecase "Thêm bàn mới" as UC_CreateTable
+  usecase "Sửa thông tin bàn" as UC_UpdateTable
+  usecase "Xóa bàn" as UC_DeleteTable
+  usecase "Tìm kiếm bàn theo mã/tên" as UC_SearchTable
+  usecase "Lọc bàn theo trạng thái (trống/có khách/đặt trước)" as UC_FilterByStatus
+  usecase "Lọc bàn theo sức chứa" as UC_FilterByCapacity
+  usecase "Xem thông tin đặt bàn của bàn đã đặt trước" as UC_ViewReservationInfo
+}
+
+Admin --> UC_ListTable
+Admin --> UC_CreateTable
+Admin --> UC_UpdateTable
+Admin --> UC_DeleteTable
+Admin --> UC_SearchTable
+Admin --> UC_FilterByStatus
+Admin --> UC_FilterByCapacity
+Admin --> UC_ViewReservationInfo
+
+Waiter --> UC_ListTable
+Waiter --> UC_SearchTable
+Waiter --> UC_FilterByStatus
+Waiter --> UC_ViewReservationInfo
+@enduml

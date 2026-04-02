@@ -1,0 +1,76 @@
+@startuml
+
+' ================== DEFINE ==================
+!define entity(name) class name << (E,#A9F5F2) >>
+!define controller(name) class name << (C,#F9E79F) >>
+!define service(name) class name << (S,#AED6F1) >>
+!define repository(name) class name << (R,#D7BDE2) >>
+
+' ================== ENTITY ==================
+entity(Category) {
+  - categoryId: Integer
+  - name: String
+  - displayOrder: Integer
+  - isActive: Boolean
+  + getters/setters
+}
+
+entity(AuditLog) {
+  - logId: Integer
+  - user: User
+  - action: String
+  - tableName: String
+  - recordId: Integer
+  - oldValue: String
+  - newValue: String
+  - createdAt: LocalDateTime
+  + getters/setters
+}
+
+' ================== CONTROLLER ==================
+controller(CategoryAdminController) {
+  + getContent(page, size, keyword, Model): String
+  + save(category, HttpSession): ResponseEntity
+  + edit(id): Category
+  + delete(id, HttpSession): String
+}
+
+' ================== SERVICE ==================
+service(CategoryService) {
+  + getCategoriesPage(page, size): Page
+  + searchCategories(keyword, page, size): Page
+  + getById(id): Category
+  + save(category): void
+  + delete(id): void
+  + getAllCategories(): List
+  + countTotalCategories(): long
+}
+
+service(AuditService) {
+  + log(user, action, tableName, recordId, oldValue, newValue): void
+}
+
+' ================== REPOSITORY ==================
+repository(CategoryRepository) {
+  + findAll(Pageable): Page
+  + findByNameContainingIgnoreCase(keyword, Pageable): Page
+}
+
+repository(AuditLogRepository) {
+  + save(AuditLog): AuditLog
+}
+
+' ================== RELATION ==================
+' Controller -> Service (Nét liền vì @Autowired)
+CategoryAdminController --> CategoryService
+CategoryAdminController --> AuditService
+
+' Service -> Repository (Nét liền vì @Autowired)
+CategoryService --> CategoryRepository
+AuditService --> AuditLogRepository
+
+' Repository -> Entity (Nét đứt vì chỉ thao tác dữ liệu)
+CategoryRepository ..> Category
+AuditLogRepository ..> AuditLog
+
+@enduml

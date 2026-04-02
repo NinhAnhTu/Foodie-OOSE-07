@@ -1,0 +1,49 @@
+@startuml
+actor Admin
+participant "DishAdminController" as DAC
+participant "MenuItemService" as MIS
+participant "MenuItemRepository" as MIR
+participant "OrderDetailRepository" as ODR
+participant "AuditService" as AS
+participant "Database" as DB
+
+Admin -> DAC: DELETE /admin/api/dishes/delete/{id}
+activate DAC
+
+DAC -> ODR: countByMenuItem_ItemId(id)
+ODR -> DB: SELECT COUNT(*) FROM order_details WHERE item_id = ?
+DB --> ODR: count
+ODR --> DAC: count
+
+alt count > 0
+  DAC --> Admin: "Không thể xóa vì đã có hóa đơn liên quan"
+else count == 0
+  DAC -> MIS: getById(id)
+  activate MIS
+  MIS -> MIR: findById(id)
+  MIR -> DB: SELECT * FROM menu_items WHERE item_id = ?
+  DB --> MIR: oldDish
+  MIR --> MIS: oldDish
+  MIS --> DAC: oldDish
+  deactivate MIS
+
+  DAC -> MIS: delete(id)
+  activate MIS
+  MIS -> MIR: deleteById(id)
+  MIR -> DB: DELETE FROM menu_items WHERE item_id = ?
+  DB --> MIR: deleted
+  MIR --> MIS: done
+  MIS --> DAC: done
+  deactivate MIS
+
+  DAC -> AS: log(user, "DELETE", "MenuItem", id, oldDish, null)
+  activate AS
+  AS -> DB: INSERT INTO audit_logs (action='DELETE', old_value=...)
+  DB --> AS: log saved
+  AS --> DAC: done
+  deactivate AS
+
+  DAC --> Admin: "success"
+end
+deactivate DAC
+@enduml
